@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Jornada da Consciência</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            background: #101012;
+            color: #fff;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            max-height: 900px;
+            background: #050505;
+            box-shadow: 0 0 22px rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #ui-top {
+            padding: 10px 14px;
+            background: linear-gradient(to bottom, #201335, #342042);
+            border-bottom: 2px solid #745194;
+            z-index: 10;
+        }
+
+        #lives {
+            font-size: 1rem;
+            margin-bottom: 8px;
+            color: #ff6969;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        #lives-icons {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .life-icon {
+            width: 34px;
+            height: 34px;
+            object-fit: contain;
+            image-rendering: auto;
+        }
+
+        .lost-life {
+            width: 34px;
+            height: 34px;
+            object-fit: contain;
+            opacity: 0.22;
+            filter: grayscale(1) brightness(0.45);
+        }
+
+        #question-box { font-size: 0.9rem; line-height: 1.3; }
+        #question-text { margin-bottom: 8px; font-weight: 800; color: #fff4ff; }
+
+        .option-text {
+            margin-bottom: 4px;
+            font-size: 0.78rem;
+            color: #eee4f4;
+            background: rgba(0, 0, 0, 0.42);
+            padding: 5px 8px;
+            border-radius: 5px;
+            border-left: 3px solid #c07be4;
+        }
+
+        canvas {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            display: block;
+        }
+
+        #joystick-zone {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        #joystick-base {
+            width: 112px;
+            height: 112px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid rgba(255, 255, 255, 0.18);
+            border-radius: 50%;
+            position: relative;
+            pointer-events: auto;
+            backdrop-filter: blur(2px);
+        }
+
+        #joystick-stick {
+            width: 46px;
+            height: 46px;
+            background: radial-gradient(circle, #f2d2ff, #a85fd1);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            transition: transform 0.04s;
+        }
+
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(10, 6, 18, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .hidden { display: none !important; }
+        .overlay h1 { color: #e9bdff; margin-bottom: 18px; font-size: 1.8rem; }
+        .overlay p { margin-bottom: 22px; font-size: 1.02rem; line-height: 1.55; color: #e8e3ec; }
+
+        button {
+            background: linear-gradient(to bottom, #bc78db, #8d47aa);
+            color: white;
+            border: 2px solid #5d2f72;
+            padding: 12px 28px;
+            font-size: 1.05rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 800;
+            margin-top: 10px;
+        }
+
+        button:active { transform: scale(0.96); }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 1.1rem;
+            border-radius: 6px;
+            border: 1px solid #a66bc4;
+            background: #1c1030;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            width: 80%;
+            max-width: 250px;
+        }
+
+        .gender-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .gender-btn {
+            background: #2f1d40;
+            border: 2px solid #654485;
+        }
+
+        .gender-btn.selected {
+            background: #9b59b6;
+            border-color: #fff;
+        }
+    </style>
+</head>
+<body>
+<div id="game-container">
+    <div id="ui-top" class="hidden">
+        <div id="lives">Vidas: <span id="lives-icons"></span></div>
+        <div id="question-box">
+            <p id="question-text"></p>
+            <div id="options-list"></div>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="joystick-zone" class="hidden">
+        <div id="joystick-base">
+            <div id="joystick-stick"></div>
+        </div>
+    </div>
+
+    <div id="start-screen" class="overlay">
+        <h1>Jornada da Consciência</h1>
+        <p>Crie seu personagem para começar uma jornada de conscientização sobre a violência silenciosa contra a mulher.</p>
+        <input type="text" id="nickname-input" placeholder="Seu Nickname" maxlength="8" pattern="[a-zA-Z0-9]+" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '')">
+        <div class="gender-selector">
+            <button class="gender-btn selected" id="btn-boy" onclick="selectGender('boy')">Menino</button>
+            <button class="gender-btn" id="btn-girl" onclick="selectGender('girl')">Menina</button>
+        </div>
+        <button onclick="startGame()">Começar</button>
+    </div>
+
+    <div id="msg-overlay" class="overlay hidden">
+        <h1 id="msg-title">Título</h1>
+        <p id="msg-desc">Descrição</p>
+        <button id="msg-btn">PRÓXIMO</button>
+    </div>
+
+    <div id="conclusion-overlay" class="overlay hidden">
+        <h1 style="color: #ffd700;">Parabéns! Você chegou ao final!</h1>
+        <p>Você concluiu todas as fases e mostrou que sabe reconhecer sinais de violência silenciosa contra a mulher.</p>
+        <p style="color: #a8ffb2; font-weight: 800;">Conhecimento também é uma forma de proteção. Continue espalhando respeito!</p>
+        <button onclick="returnToStartScreen()">Retornar ao Menu</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const uiTop = document.getElementById("ui-top");
+    const joystickZone = document.getElementById("joystick-zone");
+    const startScreen = document.getElementById("start-screen");
+    const msgOverlay = document.getElementById("msg-overlay");
+    const livesIcons = document.getElementById("lives-icons");
+
+    const BASE_SPEED = 2.15;
+    let animationId;
+    let isPlaying = false;
+    let lives = 3;
+    let currentPhaseIndex = 0;
+    let roadOffset = 0;
+    let waterOffset = 0;
+
+    const player = {
+        nickname: "",
+        gender: "boy",
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        width: 24,
+        height: 40,
+        isMoving: false,
+        walkCycle: 0,
+        vehicle: "person"
+    };
+
+    const gamePhases = [
+        {
+            id: "fase1",
+            type: "question",
+            bg: "forest1",
+            q: {
+                text: "Luna é constantemente chamada de 'louca' pelo parceiro, que nega coisas que ele mesmo fez e faz ela duvidar do que viu. Que forma de violência silenciosa é essa?",
+                options: ["A) Cansaço do parceiro", "B) Gaslighting (Violência Psicológica)", "C) Estresse no trabalho", "D) Preocupação excessiva"],
+                correct: 1,
+                explanation: "Gaslighting é uma violência psicológica em que o agressor manipula a vítima para que ela duvide da própria memória, percepção ou sanidade."
+            }
+        },
+        { id: "pre_fase2", type: "maze", bg: "dungeon" },
+        {
+            id: "fase2",
+            type: "question",
+            bg: "backrooms",
+            q: {
+                text: "O namorado de Luna diz que é melhor ele 'cuidar' do salário dela e deixa Luna sem dinheiro próprio. Isso parece ajuda, mas configura:",
+                options: ["A) Violência Patrimonial", "B) Proteção Financeira", "C) Divisão Justa do Casal", "D) Economia doméstica"],
+                correct: 0,
+                explanation: "A violência patrimonial ocorre quando o agressor controla, retém ou destrói dinheiro, bens ou documentos da vítima, tirando sua independência."
+            }
+        },
+        {
+            id: "fase3",
+            type: "car",
+            bg: "road",
+            q: {
+                text: "Luna saiu de carro com amigas. O parceiro exigiu localização em tempo real, ligou muitas vezes e disse que ela estava 'procurando problema'. O que esse comportamento revela?",
+                options: ["A) Muito amor", "B) Isolamento e controle", "C) Preocupação normal", "D) Zelo e cuidado"],
+                correct: 1,
+                explanation: "O controle excessivo e a tentativa de monitorar os passos da parceira são sinais de um relacionamento abusivo disfarçados de 'cuidado'."
+            }
+        },
+        { id: "pre_fase4", type: "bushes", bg: "forest2" },
+        {
+            id: "fase4",
+            type: "question",
+            bg: "house",
+            q: {
+                text: "Após o término, o ex de Luna espalhou mentiras e ameaçou divulgar imagens íntimas para intimidá-la. Qual violência silenciosa aparece nessa situação?",
+                options: ["A) Violência moral e psicológica", "B) Apenas raiva do momento", "C) Liberdade de expressão", "D) Desabafo inofensivo"],
+                correct: 0,
+                explanation: "A violência moral envolve calúnia, difamação ou injúria. Expor a intimidade ou inventar mentiras para manchar a reputação da vítima é crime."
+            }
+        },
+        {
+            id: "fase5",
+            type: "boat",
+            bg: "water",
+            q: {
+                text: "Luna recebe mensagens do parceiro dizendo: 'se você terminar comigo, vai se arrepender'. Ele fala baixo, sem gritar, mas usa medo para controlá-la. Isso é:",
+                options: ["A) Ameaça e violência psicológica", "B) Brincadeira de casal", "C) Ciúme aceitável", "D) Prova de amor"],
+                correct: 0,
+                explanation: "Ameaças, chantagens e intimidação são formas de violência psicológica. Mesmo sem agressão física, o medo usado para controlar alguém é violência."
+            }
+        }
+    ];
+
+    let doors = [];
+    let tunnels = [];
+    let walls = [];
+    let keyObj = null;
+    let bushKeyObj = null;
+    let exitDoor = null;
+    let bushes = [];
+    let decorBushes = [];
+    let floatingTexts = [];
+    let confetti = [];
+    let mazeCells = null;
+
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight - (uiTop.classList.contains("hidden") ? 0 : uiTop.offsetHeight);
+    }
+
+    window.addEventListener("resize", () => {
+        resizeCanvas();
+        if (isPlaying) rebuildCurrentPhaseLayout();
+    });
+
+    function selectGender(g) {
+        player.gender = g;
+        document.getElementById("btn-boy").classList.toggle("selected", g === "boy");
+        document.getElementById("btn-girl").classList.toggle("selected", g === "girl");
+    }
+
+    function updateLivesUI() {
+        livesIcons.textContent = String(lives);
+    }
+
+    function showOverlayMessage(title, desc, btnText, callback) {
+        isPlaying = false;
+        msgOverlay.classList.remove("hidden");
+        document.getElementById("msg-title").innerText = title;
+        document.getElementById("msg-desc").innerText = desc;
+        const btn = document.getElementById("msg-btn");
+        btn.innerText = btnText;
+        btn.onclick = () => {
+            msgOverlay.classList.add("hidden");
+            if (callback) callback();
+        };
+    }
+
+    function startGame() {
+        const nick = document.getElementById("nickname-input").value.trim();
+        player.nickname = nick || "Hero";
+
+        startScreen.classList.add("hidden");
+        document.getElementById("conclusion-overlay").classList.add("hidden");
+        uiTop.classList.remove("hidden");
+        joystickZone.classList.remove("hidden");
+        resizeCanvas();
+
+        lives = 3;
+        currentPhaseIndex = 0;
+        confetti = [];
+        loadCurrentPhase();
+
+        if (!animationId) loop();
+    }
+
+    function resetPlayerForPhase(phase) {
+        player.vehicle = phase.type === "car" ? "car" : phase.type === "boat" ? "boat" : "person";
+        player.width = phase.type === "maze" ? 18 : phase.type === "car" ? 32 : phase.type === "boat" ? 42 : 24;
+        player.height = phase.type === "maze" ? 30 : phase.type === "car" ? 52 : phase.type === "boat" ? 58 : 40;
+        player.x = canvas.width / 2;
+        player.y = canvas.height - 78;
+        player.vx = 0;
+        player.vy = 0;
+        player.isMoving = false;
+    }
+
+    function clearPhaseObjects() {
+        doors = [];
+        tunnels = [];
+        walls = [];
+        bushes = [];
+        decorBushes = [];
+        floatingTexts = [];
+        keyObj = null;
+        bushKeyObj = null;
+        exitDoor = null;
+        mazeCells = null;
+    }
+
+    function loadCurrentPhase() {
+        if (currentPhaseIndex >= gamePhases.length) {
+            winGame();
+            return;
+        }
+
+        updateLivesUI();
+        clearPhaseObjects();
+        const phase = gamePhases[currentPhaseIndex];
+        resetPlayerForPhase(phase);
+
+        if (phase.type === "question" || phase.type === "car" || phase.type === "boat") {
+            setupQuestionPhase(phase);
+            isPlaying = true;
+            return;
+        }
+
+        if (phase.type === "maze") {
+            document.getElementById("question-box").classList.add("hidden");
+            showOverlayMessage("Labirinto", "Encontre a chave dourada e depois entre pela porta de saída.", "ENTENDI", () => {
+                setupMazePhase();
+                isPlaying = true;
+            });
+            return;
+        }
+
+        if (phase.type === "bushes") {
+            document.getElementById("question-box").classList.add("hidden");
+            showOverlayMessage("Busca na Floresta", "Existem vários arbustos na floresta, mas só 3 podem ser investigados. Ache a chave e entre pela porta.", "BORA LÁ", () => {
+                setupBushPhase();
+                isPlaying = true;
+            });
+        }
+    }
+
+    function rebuildCurrentPhaseLayout() {
+        const phase = gamePhases[currentPhaseIndex];
+        if (!phase) return;
+        const oldXRatio = canvas.width ? player.x / canvas.width : 0.5;
+        const oldYRatio = canvas.height ? player.y / canvas.height : 0.8;
+        clearPhaseObjects();
+        if (phase.type === "question" || phase.type === "car" || phase.type === "boat") setupAnswerObjects(phase);
+        if (phase.type === "maze") setupMazePhase(false);
+        if (phase.type === "bushes") setupBushPhase(false);
+        player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, oldXRatio * canvas.width));
+        player.y = Math.max(player.height / 2, Math.min(canvas.height - player.height / 2, oldYRatio * canvas.height));
+    }
+
+    function setupQuestionPhase(phase) {
+        document.getElementById("question-box").classList.remove("hidden");
+        document.getElementById("question-text").innerText = phase.q.text;
+        const optionsList = document.getElementById("options-list");
+        optionsList.innerHTML = "";
+
+        phase.q.options.forEach(opt => {
+            const div = document.createElement("div");
+            div.className = "option-text";
+            div.innerText = opt;
+            optionsList.appendChild(div);
+        });
+
+        setupAnswerObjects(phase);
+    }
+
+    function setupAnswerObjects(phase) {
+        const itemWidth = Math.max(54, Math.min(72, canvas.width * 0.12));
+        const itemHeight = 106;
+        const spacing = Math.max(18, (canvas.width - itemWidth * 4) / 5);
+        const labels = ["A", "B", "C", "D"];
+        doors = [];
+        tunnels = [];
+
+        for (let i = 0; i < 4; i++) {
+            const obj = {
+                x: spacing + i * (itemWidth + spacing),
+                y: 78,
+                width: itemWidth,
+                height: itemHeight,
+                label: labels[i],
+                isCorrect: i === phase.q.correct
+            };
+
+            if (phase.type === "car") {
+                tunnels.push(obj);
+            } else {
+                doors.push(obj);
+            }
+        }
+    }
+
+    function setupMazePhase(placePlayer = true) {
+        const layout = [
+            "###############",
+            "#D....#.....K.#",
+            "#.###.#.#####.#",
+            "#...#.#.....#.#",
+            "###.#.#####.#.#",
+            "#...#.....#.#.#",
+            "#.#######.#.#.#",
+            "#.....#...#...#",
+            "#.###.#.#####.#",
+            "#.#...#.....#.#",
+            "#.#.#######.#.#",
+            "#.#.....#...#.#",
+            "#.#####.#.###.#",
+            "#.....#.#.....#",
+            "#####.#.#####.#",
+            "#.....#.....#.#",
+            "#.#########.#.#",
+            "#S..........#.#",
+            "###############"
+        ];
+
+        const rows = layout.length;
+        const cols = layout[0].length;
+        const cellW = canvas.width / cols;
+        const cellH = canvas.height / rows;
+        mazeCells = { layout, cellW, cellH };
+        walls = [];
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const value = layout[r][c];
+                const x = c * cellW;
+                const y = r * cellH;
+
+                if (value === "#") walls.push({ x, y, w: cellW + 0.5, h: cellH + 0.5 });
+                if (value === "S" && placePlayer) {
+                    player.x = x + cellW / 2;
+                    player.y = y + cellH / 2;
+                }
+                if (value === "K") {
+                    keyObj = {
+                        x: x + cellW / 2 - 10,
+                        y: y + cellH / 2 - 10,
+                        w: 20,
+                        h: 20,
+                        collected: false
+                    };
+                }
+                if (value === "D") {
+                    exitDoor = {
+                        x: x + cellW / 2 - Math.max(48, cellW * 0.75) / 2,
+                        y: y + 6,
+                        width: Math.max(48, cellW * 0.75),
+                        height: Math.max(78, cellH * 2.45),
+                        unlocked: false,
+                        label: "SAÍDA"
+                    };
+                }
+            }
+        }
+    }
+
+    function setupBushPhase(placePlayer = true) {
+        if (placePlayer) {
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 82;
+        }
+
+        exitDoor = {
+            x: canvas.width / 2 - 38,
+            y: 30,
+            width: 76,
+            height: 104,
+            unlocked: false,
+            label: "SAÍDA"
+        };
+
+        const decorPoints = [
+            ["tree", 0.08, 0.18, 30], ["tree", 0.22, 0.13, 24], ["tree", 0.39, 0.16, 28], ["tree", 0.65, 0.13, 25], ["tree", 0.88, 0.18, 32],
+            ["tree", 0.12, 0.34, 26], ["tree", 0.32, 0.28, 34], ["tree", 0.54, 0.31, 25], ["tree", 0.75, 0.29, 36], ["tree", 0.93, 0.38, 23],
+            ["tree", 0.08, 0.55, 32], ["tree", 0.26, 0.58, 24], ["tree", 0.47, 0.54, 34], ["tree", 0.70, 0.58, 27], ["tree", 0.87, 0.52, 31],
+            ["tree", 0.15, 0.76, 24], ["tree", 0.36, 0.73, 34], ["tree", 0.62, 0.77, 26], ["tree", 0.82, 0.74, 34], ["tree", 0.95, 0.68, 22],
+            ["grass", 0.06, 0.24, 0], ["grass", 0.18, 0.47, 0], ["grass", 0.41, 0.42, 0], ["grass", 0.58, 0.49, 0], ["grass", 0.90, 0.61, 0],
+            ["grass", 0.14, 0.87, 0], ["grass", 0.30, 0.84, 0], ["grass", 0.54, 0.85, 0], ["grass", 0.76, 0.86, 0], ["grass", 0.91, 0.80, 0]
+        ];
+
+        decorBushes = decorPoints.map(([kind, x, y, r]) => ({
+            kind,
+            x: x * canvas.width,
+            y: y * canvas.height,
+            r
+        }));
+
+        const interactivePoints = [
+            { x: canvas.width * 0.22, y: canvas.height * 0.43 },
+            { x: canvas.width * 0.52, y: canvas.height * 0.62 },
+            { x: canvas.width * 0.78, y: canvas.height * 0.40 }
+        ];
+        const correctIdx = interactivePoints.length - 1;
+
+        bushes = interactivePoints.map((p, i) => ({
+            x: p.x - 31,
+            y: p.y - 26,
+            w: 62,
+            h: 52,
+            checked: false,
+            type: i === correctIdx ? "key" : "fake"
+        }));
+    }
+
+    function advancePhase() {
+        currentPhaseIndex++;
+        loadCurrentPhase();
+    }
+
+    function processCorrectAnswer(explanation) {
+        showOverlayMessage("Resposta Correta!", explanation, "PRÓXIMO", advancePhase);
+    }
+
+    function processWrongAnswer() {
+        lives--;
+        updateLivesUI();
+        if (lives <= 0) {
+            showOverlayMessage("Game Over", "Você perdeu todas as vidas. Volte e tente novamente.", "REINICIAR", startGame);
+            return;
+        }
+
+        player.x = canvas.width / 2;
+        player.y = canvas.height - 78;
+        player.vx = 0;
+        player.vy = 0;
+    }
+
+    function returnToStartScreen() {
+        isPlaying = false;
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        uiTop.classList.add("hidden");
+        joystickZone.classList.add("hidden");
+        document.getElementById("question-box").classList.add("hidden");
+        msgOverlay.classList.add("hidden");
+        document.getElementById("conclusion-overlay").classList.add("hidden");
+        startScreen.classList.remove("hidden");
+        document.getElementById("nickname-input").value = "";
+        player.nickname = "";
+        lives = 3;
+        currentPhaseIndex = 0;
+        confetti = [];
+        resizeCanvas();
+        updateLivesUI();
+    }
+
+    function winGame() {
+        isPlaying = false;
+        uiTop.classList.add("hidden");
+        joystickZone.classList.add("hidden");
+        document.getElementById("conclusion-overlay").classList.remove("hidden");
+        confetti = [];
+        for (let i = 0; i < 120; i++) {
+            confetti.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                c: ["#ff4d4d", "#a8ffb2", "#e0b0ff", "#ffd700", "#ffffff", "#59d3ff"][Math.floor(Math.random() * 6)],
+                s: Math.random() * 4 + 2,
+                vy: Math.random() * 3 + 2,
+                vx: Math.random() * 2 - 1
+            });
+        }
+        loopConclusion();
+    }
+
+    const baseJoystick = document.getElementById("joystick-base");
+    const stick = document.getElementById("joystick-stick");
+    let isDragging = false;
+    const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+
+    baseJoystick.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        isDragging = true;
+        baseJoystick.setPointerCapture(e.pointerId);
+        updateJoystick(e);
+    });
+
+    baseJoystick.addEventListener("pointermove", (e) => {
+        if (isDragging) {
+            e.preventDefault();
+            updateJoystick(e);
+        }
+    });
+
+    function resetJoystick() {
+        isDragging = false;
+        stick.style.transform = "translate(-50%, -50%)";
+        player.vx = 0;
+        player.vy = 0;
+        player.isMoving = false;
+    }
+
+    baseJoystick.addEventListener("pointerup", resetJoystick);
+    baseJoystick.addEventListener("pointercancel", resetJoystick);
+
+    function updateJoystick(touch) {
+        const rect = baseJoystick.getBoundingClientRect();
+        let dx = touch.clientX - (rect.left + rect.width / 2);
+        let dy = touch.clientY - (rect.top + rect.height / 2);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxR = rect.width / 2;
+
+        if (dist > maxR) {
+            dx = (dx / dist) * maxR;
+            dy = (dy / dist) * maxR;
+        }
+
+        stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+        const norm = Math.sqrt(dx * dx + dy * dy);
+        if (norm > 0) {
+            player.vx = (dx / maxR) * BASE_SPEED;
+            player.vy = (dy / maxR) * BASE_SPEED;
+            player.isMoving = true;
+        }
+    }
+
+    window.addEventListener("keydown", (e) => {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+        const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+        if (Object.prototype.hasOwnProperty.call(keys, key)) {
+            e.preventDefault();
+            keys[key] = true;
+        }
+    });
+
+    window.addEventListener("keyup", (e) => {
+        const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+        if (Object.prototype.hasOwnProperty.call(keys, key)) keys[key] = false;
+    });
+
+    function updateKeyboard() {
+        if (isDragging) return;
+        let dx = 0;
+        let dy = 0;
+        if (keys.w || keys.ArrowUp) dy = -1;
+        if (keys.s || keys.ArrowDown) dy = 1;
+        if (keys.a || keys.ArrowLeft) dx = -1;
+        if (keys.d || keys.ArrowRight) dx = 1;
+
+        if (dx !== 0 || dy !== 0) {
+            const length = Math.sqrt(dx * dx + dy * dy);
+            player.vx = (dx / length) * BASE_SPEED;
+            player.vy = (dy / length) * BASE_SPEED;
+            player.isMoving = true;
+        } else {
+            player.vx = 0;
+            player.vy = 0;
+            player.isMoving = false;
+        }
+    }
+
+    function checkAABB(px, py, pw, ph, rect) {
+        return px < rect.x + (rect.w || rect.width) &&
+            px + pw > rect.x &&
+            py < rect.y + (rect.h || rect.height) &&
+            py + ph > rect.y;
+    }
+
+    function update() {
+        updateKeyboard();
+        roadOffset += 2.4;
+        waterOffset += 0.02;
+
+        let nextX = player.x + player.vx;
+        let nextY = player.y + player.vy;
+
+        if (nextX - player.width / 2 < 0) nextX = player.width / 2;
+        if (nextX + player.width / 2 > canvas.width) nextX = canvas.width - player.width / 2;
+        if (nextY - player.height / 2 < 0) nextY = player.height / 2;
+        if (nextY + player.height / 2 > canvas.height) nextY = canvas.height - player.height / 2;
+
+        const phase = gamePhases[currentPhaseIndex];
+
+        if (phase.type === "maze") {
+            let hitWallX = false;
+            let hitWallY = false;
+
+            for (const w of walls) {
+                if (checkAABB(nextX - player.width / 2, player.y - player.height / 2, player.width, player.height, w)) hitWallX = true;
+                if (checkAABB(player.x - player.width / 2, nextY - player.height / 2, player.width, player.height, w)) hitWallY = true;
+            }
+
+            if (!hitWallX) player.x = nextX;
+            if (!hitWallY) player.y = nextY;
+
+            if (keyObj && !keyObj.collected && checkAABB(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height, keyObj)) {
+                keyObj.collected = true;
+                exitDoor.unlocked = true;
+                floatingTexts.push({ x: keyObj.x, y: keyObj.y, text: "Porta liberada!", life: 90, c: "#ffd700" });
+            }
+        } else {
+            player.x = nextX;
+            player.y = nextY;
+        }
+
+        const interactables = phase.type === "car" ? tunnels : ((phase.type === "question" || phase.type === "boat") ? doors : []);
+        for (const obj of interactables) {
+            if (checkAABB(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height, obj)) {
+                if (obj.isCorrect) processCorrectAnswer(phase.q.explanation);
+                else processWrongAnswer();
+                return;
+            }
+        }
+
+        if (exitDoor && exitDoor.unlocked && checkAABB(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height, exitDoor)) {
+            advancePhase();
+            return;
+        }
+
+        if (phase.type === "bushes") {
+            if (bushKeyObj && !bushKeyObj.collected &&
+                checkAABB(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height, bushKeyObj)) {
+                bushKeyObj.collected = true;
+                exitDoor.unlocked = true;
+                floatingTexts.push({ x: bushKeyObj.x, y: bushKeyObj.y, text: "Chave encontrada!", life: 110, c: "#ffd700" });
+            }
+
+            for (const b of bushes) {
+                if (!b.checked && checkAABB(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height, b)) {
+                    b.checked = true;
+                    if (b.type === "key") {
+                        bushKeyObj = {
+                            x: exitDoor.x + exitDoor.width / 2 - 10,
+                            y: exitDoor.y + exitDoor.height + 24,
+                            w: 20,
+                            h: 20,
+                            collected: false
+                        };
+                        floatingTexts.push({ x: bushKeyObj.x + 10, y: bushKeyObj.y - 10, text: "A chave apareceu!", life: 110, c: "#ffd700" });
+                    } else {
+                        floatingTexts.push({ x: b.x + 32, y: b.y, text: "Nada aqui!", life: 90, c: "#ffffff" });
+                    }
+                }
+            }
+        }
+
+        floatingTexts.forEach(ft => {
+            ft.y -= 0.45;
+            ft.life--;
+        });
+        floatingTexts = floatingTexts.filter(ft => ft.life > 0);
+    }
+
+    function drawBackground(type) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (type === "forest1") drawForestPath();
+        else if (type === "dungeon") drawDungeon();
+        else if (type === "backrooms") drawBackrooms();
+        else if (type === "road") drawRoad();
+        else if (type === "forest2") drawForestBushes();
+        else if (type === "house") drawHouse();
+        else if (type === "water") drawWater();
+        else {
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+
+    function drawForestPath() {
+        ctx.fillStyle = "#173b25";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#5b412b";
+        ctx.beginPath();
+        ctx.moveTo(canvas.width * 0.35, 0);
+        ctx.lineTo(canvas.width * 0.65, 0);
+        ctx.lineTo(canvas.width * 0.76, canvas.height);
+        ctx.lineTo(canvas.width * 0.24, canvas.height);
+        ctx.closePath();
+        ctx.fill();
+        drawLeafCluster(canvas.width * 0.12, canvas.height * 0.16, 34, "#255d35");
+        drawLeafCluster(canvas.width * 0.87, canvas.height * 0.28, 42, "#2d6c3d");
+        drawLeafCluster(canvas.width * 0.17, canvas.height * 0.68, 38, "#214f31");
+        drawLeafCluster(canvas.width * 0.89, canvas.height * 0.76, 32, "#2f7341");
+    }
+
+    function drawDungeon() {
+        ctx.fillStyle = "#3b3a43";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (mazeCells) {
+            const { cellW, cellH } = mazeCells;
+            ctx.strokeStyle = "rgba(255,255,255,0.05)";
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += cellW) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += cellH) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        walls.forEach((w, i) => {
+            ctx.fillStyle = i % 2 === 0 ? "#15151b" : "#1b1b23";
+            ctx.fillRect(w.x, w.y, w.w, w.h);
+            ctx.strokeStyle = "#55535e";
+            ctx.strokeRect(w.x + 0.5, w.y + 0.5, w.w - 1, w.h - 1);
+        });
+    }
+
+    function drawBackrooms() {
+        ctx.fillStyle = "#d8ce78";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "#bcb466";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += 42) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, canvas.height);
+            ctx.stroke();
+        }
+        for (let i = 0; i < canvas.height; i += 42) {
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(canvas.width, i);
+            ctx.stroke();
+        }
+        ctx.fillStyle = "rgba(255,255,210,0.18)";
+        ctx.fillRect(canvas.width * 0.18, 0, canvas.width * 0.14, canvas.height);
+    }
+
+    function drawRoad() {
+        ctx.fillStyle = "#426c35";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const roadLeft = canvas.width * 0.04;
+        const roadRight = canvas.width * 0.96;
+        const roadW = roadRight - roadLeft;
+        ctx.fillStyle = "#3d4144";
+        ctx.fillRect(roadLeft, 0, roadW, canvas.height);
+
+        ctx.fillStyle = "#2e3135";
+        ctx.fillRect(roadLeft + roadW * 0.05, 0, roadW * 0.90, canvas.height);
+
+        const shoulder = ctx.createLinearGradient(0, 0, canvas.width, 0);
+        shoulder.addColorStop(0, "rgba(255,255,255,0.08)");
+        shoulder.addColorStop(0.5, "rgba(255,255,255,0)");
+        shoulder.addColorStop(1, "rgba(255,255,255,0.08)");
+        ctx.fillStyle = shoulder;
+        ctx.fillRect(roadLeft, 0, roadW, canvas.height);
+
+        ctx.strokeStyle = "#f0f0f0";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(roadLeft + 8, 0);
+        ctx.lineTo(roadLeft + 8, canvas.height);
+        ctx.moveTo(roadRight - 8, 0);
+        ctx.lineTo(roadRight - 8, canvas.height);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#ffd84f";
+        ctx.lineWidth = 4;
+        ctx.setLineDash([24, 24]);
+        ctx.lineDashOffset = -roadOffset;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([14, 16]);
+        ctx.lineDashOffset = -roadOffset * 0.45;
+        for (let i = 1; i < 4; i++) {
+            const tx = roadLeft + roadW * (i / 4);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, canvas.height);
+            ctx.lineTo(tx, 150);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = "rgba(0,0,0,0.18)";
+        ctx.fillRect(roadLeft + 12, 23, roadW - 24, 14);
+        ctx.fillStyle = "#d6d6d6";
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("ESCOLHA A SAÍDA CORRETA", canvas.width / 2, 34);
+    }
+
+    function drawForestBushes() {
+        ctx.fillStyle = "#254e2b";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "#4c3727";
+        ctx.beginPath();
+        ctx.moveTo(canvas.width * 0.38, 0);
+        ctx.lineTo(canvas.width * 0.62, 0);
+        ctx.lineTo(canvas.width * 0.82, canvas.height);
+        ctx.lineTo(canvas.width * 0.18, canvas.height);
+        ctx.closePath();
+        ctx.fill();
+
+        decorBushes.forEach(item => {
+            if (item.kind === "grass") drawGrassPatch(item.x, item.y);
+            else drawTree(item.x, item.y, item.r);
+        });
+
+        bushes.forEach(b => drawInteractiveBush(b));
+    }
+
+    function drawHouse() {
+        ctx.fillStyle = "#a78364";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#f2dfc6";
+        ctx.fillRect(0, 0, canvas.width, 105);
+        ctx.fillStyle = "#8b6749";
+        for (let y = 120; y < canvas.height; y += 34) {
+            ctx.fillRect(0, y, canvas.width, 2);
+        }
+        ctx.fillStyle = "#c49b73";
+        ctx.fillRect(20, 128, canvas.width - 40, 18);
+    }
+
+    function drawWater() {
+        const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grd.addColorStop(0, "#2aa6c8");
+        grd.addColorStop(1, "#126d97");
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = "rgba(255,255,255,0.32)";
+        ctx.lineWidth = 2;
+        for (let y = 35; y < canvas.height; y += 42) {
+            ctx.beginPath();
+            for (let x = -30; x <= canvas.width + 30; x += 15) {
+                const waveY = y + Math.sin(x * 0.04 + waterOffset * 3 + y * 0.03) * 5;
+                if (x === -30) ctx.moveTo(x, waveY);
+                else ctx.lineTo(x, waveY);
+            }
+            ctx.stroke();
+        }
+
+        ctx.fillStyle = "#e2ca8f";
+        ctx.fillRect(0, 0, canvas.width, 24);
+        ctx.fillStyle = "#7c5932";
+        for (let x = 0; x < canvas.width; x += 32) {
+            ctx.fillRect(x, 0, 16, 24);
+        }
+    }
+
+    function drawLeafCluster(x, y, r, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.arc(x - r * 0.55, y + r * 0.1, r * 0.72, 0, Math.PI * 2);
+        ctx.arc(x + r * 0.52, y + r * 0.12, r * 0.68, 0, Math.PI * 2);
+        ctx.arc(x, y - r * 0.42, r * 0.75, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        ctx.beginPath();
+        ctx.arc(x - r * 0.25, y - r * 0.3, r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawTree(x, y, r) {
+        ctx.fillStyle = "#102b1b";
+        ctx.fillRect(x - r * 0.14, y + r * 0.1, r * 0.28, r * 1.75);
+        drawLeafCluster(x, y, r, "#34783d");
+    }
+
+    function drawGrassPatch(x, y) {
+        ctx.strokeStyle = "#9ac96a";
+        ctx.lineWidth = 2;
+        for (let i = -2; i <= 2; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + i * 4, y + 8);
+            ctx.lineTo(x + i * 3, y - 6 - Math.abs(i) * 2);
+            ctx.stroke();
+        }
+    }
+
+    function drawInteractiveBush(b) {
+        ctx.fillStyle = b.checked ? "#1c4225" : "#286a35";
+        ctx.beginPath();
+        ctx.arc(b.x + b.w * 0.28, b.y + b.h * 0.58, b.h * 0.42, 0, Math.PI * 2);
+        ctx.arc(b.x + b.w * 0.58, b.y + b.h * 0.42, b.h * 0.50, 0, Math.PI * 2);
+        ctx.arc(b.x + b.w * 0.80, b.y + b.h * 0.62, b.h * 0.38, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(255,255,255,0.10)";
+        ctx.beginPath();
+        ctx.arc(b.x + b.w * 0.46, b.y + b.h * 0.25, b.h * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (b.checked) {
+            ctx.fillStyle = "#d9e8d2";
+            ctx.font = "bold 11px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(b.type === "key" ? "CHAVE" : "VAZIO", b.x + b.w / 2, b.y + b.h + 14);
+        }
+    }
+
+    function drawStandardDoor(d) {
+        const w = d.width || d.w;
+        const h = d.height || d.h;
+        const locked = d.unlocked === false;
+
+        ctx.save();
+        if (locked) ctx.globalAlpha = 0.76;
+
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fillRect(d.x - 7, d.y + h - 4, w + 14, 10);
+
+        ctx.fillStyle = "#21140d";
+        ctx.beginPath();
+        ctx.moveTo(d.x - 6, d.y + h);
+        ctx.lineTo(d.x - 6, d.y + w * 0.45);
+        ctx.quadraticCurveTo(d.x + w / 2, d.y - 20, d.x + w + 6, d.y + w * 0.45);
+        ctx.lineTo(d.x + w + 6, d.y + h);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = locked ? "#6d4228" : "#92592e";
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y + h);
+        ctx.lineTo(d.x, d.y + w * 0.48);
+        ctx.quadraticCurveTo(d.x + w / 2, d.y - 10, d.x + w, d.y + w * 0.48);
+        ctx.lineTo(d.x + w, d.y + h);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = "#2d1a10";
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = locked ? "#3f2518" : "#5b341e";
+        ctx.fillRect(d.x + w * 0.15, d.y + h * 0.28, w * 0.70, h * 0.22);
+        ctx.fillRect(d.x + w * 0.15, d.y + h * 0.58, w * 0.70, h * 0.25);
+
+        ctx.strokeStyle = "rgba(255,220,150,0.24)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(d.x + w * 0.50, d.y + h * 0.16);
+        ctx.lineTo(d.x + w * 0.50, d.y + h * 0.94);
+        ctx.stroke();
+
+        ctx.fillStyle = locked ? "#a0a0a0" : "#ffd75a";
+        ctx.beginPath();
+        ctx.arc(d.x + w * 0.78, d.y + h * 0.56, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = locked ? "#e7e1d6" : "#fff0ad";
+        ctx.fillRect(d.x - 7, d.y - 30, w + 14, 22);
+        ctx.strokeStyle = "#3a2819";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(d.x - 7, d.y - 30, w + 14, 22);
+        ctx.fillStyle = "#161616";
+        ctx.font = "bold 13px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(d.label || "SAÍDA", d.x + w / 2, d.y - 14);
+
+        if (locked) {
+            ctx.fillStyle = "#c9c9c9";
+            ctx.fillRect(d.x + w / 2 - 9, d.y + h * 0.62, 18, 14);
+            ctx.strokeStyle = "#c9c9c9";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(d.x + w / 2, d.y + h * 0.62, 9, Math.PI, 0);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
+    function drawTunnel(t) {
+        const w = t.width;
+        const h = t.height;
+        const cx = t.x + w / 2;
+        const archTop = t.y + 18;
+
+        ctx.save();
+
+        // Shadow under the tunnel.
+        ctx.fillStyle = "rgba(0,0,0,0.30)";
+        ctx.fillRect(t.x - 6, t.y + h - 2, w + 12, 10);
+
+        // Stone outer arch.
+        ctx.fillStyle = "#454955";
+        ctx.beginPath();
+        ctx.moveTo(t.x - 5, t.y + h);
+        ctx.lineTo(t.x - 5, archTop + 18);
+        ctx.quadraticCurveTo(cx, t.y - 10, t.x + w + 5, archTop + 18);
+        ctx.lineTo(t.x + w + 5, t.y + h);
+        ctx.closePath();
+        ctx.fill();
+
+        // Inner stone highlight.
+        ctx.strokeStyle = "#858b99";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(t.x + 2, t.y + h - 3);
+        ctx.lineTo(t.x + 2, archTop + 19);
+        ctx.quadraticCurveTo(cx, t.y + 1, t.x + w - 2, archTop + 19);
+        ctx.lineTo(t.x + w - 2, t.y + h - 3);
+        ctx.stroke();
+
+        // Dark tunnel interior.
+        ctx.fillStyle = "#10131a";
+        ctx.beginPath();
+        ctx.moveTo(t.x + 7, t.y + h);
+        ctx.lineTo(t.x + 7, archTop + 20);
+        ctx.quadraticCurveTo(cx, t.y + 8, t.x + w - 7, archTop + 20);
+        ctx.lineTo(t.x + w - 7, t.y + h);
+        ctx.closePath();
+        ctx.fill();
+
+        // Warm tunnel lights.
+        ctx.fillStyle = "#ffd86b";
+        ctx.beginPath();
+        ctx.arc(t.x + 12, t.y + h * 0.38, 4, 0, Math.PI * 2);
+        ctx.arc(t.x + w - 12, t.y + h * 0.38, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Road markings inside the tunnel.
+        ctx.strokeStyle = "rgba(255,255,255,0.22)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([9, 8]);
+        ctx.beginPath();
+        ctx.moveTo(cx, t.y + h * 0.48);
+        ctx.lineTo(cx, t.y + h - 4);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Answer plaque above the tunnel.
+        ctx.fillStyle = "#f2d37a";
+        ctx.fillRect(t.x - 7, t.y - 31, w + 14, 23);
+        ctx.strokeStyle = "#47361b";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(t.x - 7, t.y - 31, w + 14, 23);
+        ctx.fillStyle = "#171717";
+        ctx.font = "bold 13px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(t.label, cx, t.y - 15);
+
+        ctx.restore();
+    }
+
+    function drawKey() {
+        if (!keyObj || keyObj.collected) return;
+        const x = keyObj.x + keyObj.w / 2;
+        const y = keyObj.y + keyObj.h / 2;
+        ctx.fillStyle = "#ffd700";
+        ctx.beginPath();
+        ctx.arc(x - 2, y, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(x + 4, y - 3, 18, 6);
+        ctx.fillRect(x + 17, y + 1, 4, 8);
+        ctx.fillRect(x + 23, y + 1, 4, 6);
+        ctx.fillStyle = "#8c6400";
+        ctx.beginPath();
+        ctx.arc(x - 2, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawBushKey() {
+        if (!bushKeyObj || bushKeyObj.collected) return;
+        const x = bushKeyObj.x + bushKeyObj.w / 2;
+        const y = bushKeyObj.y + bushKeyObj.h / 2;
+        ctx.fillStyle = "#ffd700";
+        ctx.beginPath();
+        ctx.arc(x - 2, y, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(x + 4, y - 3, 18, 6);
+        ctx.fillRect(x + 17, y + 1, 4, 8);
+        ctx.fillRect(x + 23, y + 1, 4, 6);
+        ctx.fillStyle = "#8c6400";
+        ctx.beginPath();
+        ctx.arc(x - 2, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawInteractables(phaseType) {
+        doors.forEach(drawStandardDoor);
+        tunnels.forEach(drawTunnel);
+        if (exitDoor) drawStandardDoor(exitDoor);
+        drawKey();
+        if (bushKeyObj && !bushKeyObj.collected) drawBushKey();
+
+        floatingTexts.forEach(ft => {
+            ctx.save();
+            ctx.globalAlpha = Math.min(1, ft.life / 30);
+            ctx.fillStyle = ft.c;
+            ctx.font = "bold 14px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(ft.text, ft.x, ft.y);
+            ctx.restore();
+        });
+    }
+
+    function drawPlayer() {
+        if (player.vehicle === "car") {
+            drawCar(player.x, player.y);
+            return;
+        }
+
+        if (player.vehicle === "boat") {
+            drawBoat(player.x, player.y);
+            return;
+        }
+
+        drawPerson(player.x, player.y);
+    }
+
+    function drawCar(px, py) {
+        ctx.fillStyle = "rgba(0,0,0,0.32)";
+        ctx.beginPath();
+        ctx.ellipse(px, py + 25, 18, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#d11f1f";
+        ctx.fillRect(px - 15, py - 25, 30, 50);
+        ctx.fillStyle = "#f34336";
+        ctx.fillRect(px - 12, py - 20, 24, 17);
+        ctx.fillStyle = "#88d7ff";
+        ctx.fillRect(px - 10, py - 8, 20, 16);
+        ctx.fillStyle = "#111";
+        ctx.fillRect(px - 19, py - 17, 6, 12);
+        ctx.fillRect(px + 13, py - 17, 6, 12);
+        ctx.fillRect(px - 19, py + 10, 6, 12);
+        ctx.fillRect(px + 13, py + 10, 6, 12);
+        ctx.fillStyle = "#fff36a";
+        ctx.fillRect(px - 12, py - 25, 7, 4);
+        ctx.fillRect(px + 5, py - 25, 7, 4);
+    }
+
+    function drawBoat(px, py) {
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.fillStyle = "rgba(0,0,0,0.22)";
+        ctx.beginPath();
+        ctx.ellipse(0, 24, 26, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#8b4f27";
+        ctx.beginPath();
+        ctx.moveTo(-26, 2);
+        ctx.lineTo(26, 2);
+        ctx.lineTo(15, 26);
+        ctx.lineTo(-15, 26);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#b8763f";
+        ctx.fillRect(-16, -3, 32, 8);
+        ctx.strokeStyle = "#f2d8a8";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, -4);
+        ctx.lineTo(0, -34);
+        ctx.stroke();
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.moveTo(2, -32);
+        ctx.lineTo(2, -6);
+        ctx.lineTo(22, -6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#ffcc57";
+        ctx.beginPath();
+        ctx.moveTo(-2, -29);
+        ctx.lineTo(-2, -6);
+        ctx.lineTo(-19, -6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function drawPerson(px, py) {
+        ctx.fillStyle = "rgba(0,0,0,0.36)";
+        ctx.beginPath();
+        ctx.ellipse(px, py + 21, 15, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const legOffset = player.isMoving ? Math.sin(player.walkCycle += 0.25) * 4 : 0;
+        ctx.fillStyle = "#1d2b3a";
+        ctx.fillRect(px - 8, py + 7, 6, 14 - legOffset);
+        ctx.fillRect(px + 2, py + 7, 6, 14 + legOffset);
+        ctx.fillStyle = "#171717";
+        ctx.fillRect(px - 10, py + 19 - legOffset, 9, 4);
+        ctx.fillRect(px + 1, py + 19 + legOffset, 9, 4);
+
+        if (player.gender === "boy") {
+            ctx.fillStyle = "#22324a";
+            ctx.fillRect(px - 13, py - 13, 26, 22);
+            ctx.fillStyle = "#6f2da8";
+            ctx.fillRect(px - 10, py - 12, 20, 18);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 7px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("CIEE", px, py - 1);
+            ctx.fillStyle = "#22324a";
+            ctx.fillRect(px - 14, py - 13, 5, 21);
+            ctx.fillRect(px + 9, py - 13, 5, 21);
+            ctx.fillStyle = "#d4a373";
+            ctx.fillRect(px - 14, py - 8, 4, 12 + legOffset);
+            ctx.fillRect(px + 10, py - 8, 4, 12 - legOffset);
+            ctx.fillStyle = "#f1c27d";
+            ctx.beginPath();
+            ctx.arc(px, py - 18, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#4a2d18";
+            ctx.beginPath();
+            ctx.arc(px, py - 22, 11, Math.PI, 0);
+            ctx.fill();
+            ctx.fillRect(px - 9, py - 26, 18, 5);
+        } else {
+            ctx.fillStyle = "#4b2d6f";
+            ctx.beginPath();
+            ctx.moveTo(px - 13, py - 13);
+            ctx.lineTo(px + 13, py - 13);
+            ctx.lineTo(px + 15, py + 9);
+            ctx.lineTo(px - 15, py + 9);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = "#6f2da8";
+            ctx.fillRect(px - 9, py - 11, 18, 16);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 7px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("CIEE", px, py - 1);
+            ctx.fillStyle = "#d4a373";
+            ctx.fillRect(px - 14, py - 8, 4, 12 + legOffset);
+            ctx.fillRect(px + 10, py - 8, 4, 12 - legOffset);
+            ctx.fillStyle = "#3a1f04";
+            ctx.beginPath();
+            ctx.arc(px, py - 18, 14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#f1c27d";
+            ctx.beginPath();
+            ctx.arc(px, py - 18, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#3a1f04";
+            ctx.beginPath();
+            ctx.arc(px, py - 21, 10, Math.PI, 0);
+            ctx.fill();
+            ctx.fillRect(px - 12, py - 18, 4, 17);
+            ctx.fillRect(px + 8, py - 18, 4, 17);
+        }
+
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.arc(px - 4, py - 19, 3, 0, Math.PI * 2);
+        ctx.arc(px + 4, py - 19, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "black";
+        ctx.beginPath();
+        ctx.arc(px - 4, py - 19, 1.4, 0, Math.PI * 2);
+        ctx.arc(px + 4, py - 19, 1.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#c9184a";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(px, py - 15, 3, 0, Math.PI);
+        ctx.stroke();
+
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "center";
+        const nameWidth = ctx.measureText(player.nickname).width + 10;
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(px - nameWidth / 2, py - 49, nameWidth, 16);
+        ctx.fillStyle = "#fff";
+        ctx.fillText(player.nickname, px, py - 35);
+    }
+
+    function loop() {
+        if (isPlaying) {
+            update();
+            const phase = gamePhases[currentPhaseIndex];
+            drawBackground(phase.bg);
+            drawInteractables(phase.type);
+            drawPlayer();
+        }
+
+        animationId = requestAnimationFrame(loop);
+    }
+
+    function loopConclusion() {
+        if (!document.getElementById("conclusion-overlay").classList.contains("hidden")) {
+            ctx.fillStyle = "#121212";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            confetti.forEach(c => {
+                c.y += c.vy;
+                c.x += c.vx;
+                if (c.y > canvas.height) c.y = -10;
+                ctx.fillStyle = c.c;
+                ctx.fillRect(c.x, c.y, c.s, c.s);
+            });
+            requestAnimationFrame(loopConclusion);
+        }
+    }
+
+    resizeCanvas();
+</script>
+</body>
+</html>
