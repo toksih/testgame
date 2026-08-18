@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <title>Jornada da Consciência</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
@@ -184,7 +184,100 @@
             background: #9b59b6;
             border-color: #fff;
         }
-    </style>
+    
+/* ===== MOBILE LANDSCAPE REDESIGN ===== */
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #0b1020;
+    touch-action: none;
+}
+body {
+    font-family: Arial, sans-serif;
+}
+#game-container, #game, #app {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    max-height: none !important;
+}
+canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+}
+button, input {
+    font-size: clamp(14px, 2.4vw, 22px);
+}
+#start-screen {
+    min-height: 100dvh;
+    width: 100vw;
+    box-sizing: border-box;
+    padding: 3vh 5vw;
+}
+#start-screen .start-content {
+    max-width: 900px;
+    margin: auto;
+}
+#nickname-input {
+    width: min(70vw, 520px);
+    box-sizing: border-box;
+}
+#ui-top {
+    padding: max(8px, 1.5vh) max(12px, 2vw);
+    font-size: clamp(13px, 2vw, 20px);
+}
+#question-box {
+    width: min(92vw, 1050px);
+    max-height: 34dvh;
+    overflow: auto;
+    box-sizing: border-box;
+    margin: 1vh auto;
+    padding: 1.2vh 2vw;
+}
+#options-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1vw;
+}
+#options-list .option-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+#joystick-zone {
+    position: fixed !important;
+    left: 2vw !important;
+    bottom: 2vh !important;
+    width: min(22vw, 180px) !important;
+    height: min(22vw, 180px) !important;
+    z-index: 50;
+}
+@media (max-aspect-ratio: 1/1) {
+    #orientation-overlay {
+        display: flex !important;
+    }
+}
+@media (orientation: landscape) {
+    #orientation-overlay {
+        display: none !important;
+    }
+}
+@media (max-width: 800px) and (orientation: landscape) {
+    #options-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #question-box { max-height: 30dvh; }
+}
+
+
+/* Touch controls are intentionally large and translucent in landscape. */
+.joystick, #joystick, .joystick-base, .joystick-knob {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+</style>
 </head>
 <body>
 <div id="game-container">
@@ -240,6 +333,7 @@
     const livesIcons = document.getElementById("lives-icons");
 
     const BASE_SPEED = 2.15;
+    const MAZE_SPEED = 2.75;
     let animationId;
     let isPlaying = false;
     let lives = 3;
@@ -334,9 +428,19 @@
     let mazeCells = null;
 
     function resizeCanvas() {
-        canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = canvas.parentElement.clientHeight - (uiTop.classList.contains("hidden") ? 0 : uiTop.offsetHeight);
+    const w = Math.max(320, window.innerWidth);
+    const h = Math.max(180, window.innerHeight);
+    const targetRatio = 16 / 9;
+    let cw = w, ch = w / targetRatio;
+    if (ch > h) {
+        ch = h;
+        cw = h * targetRatio;
     }
+    canvas.width = Math.floor(cw);
+    canvas.height = Math.floor(ch);
+    canvas.style.width = "100vw";
+    canvas.style.height = "100dvh";
+}
 
     window.addEventListener("resize", () => {
         resizeCanvas();
@@ -367,6 +471,10 @@
     }
 
     function startGame() {
+        if (window.innerHeight > window.innerWidth) {
+            document.getElementById("orientation-overlay").style.display = "flex";
+            return;
+        }
         const nick = document.getElementById("nickname-input").value.trim();
         player.nickname = nick || "Hero";
 
@@ -1507,6 +1615,64 @@
     }
 
     resizeCanvas();
+
+    function enforceLandscape() {
+        const overlay = document.getElementById("orientation-overlay");
+        if (!overlay) return;
+        const portrait = window.innerHeight > window.innerWidth;
+        overlay.style.display = portrait ? "flex" : "none";
+        if (portrait) isPlaying = false;
+    }
+    window.addEventListener("resize", enforceLandscape);
+    window.addEventListener("orientationchange", () => setTimeout(enforceLandscape, 100));
+    document.addEventListener("DOMContentLoaded", enforceLandscape);
+
 </script>
+
+<div id="orientation-overlay" aria-modal="true" role="dialog">
+  <div class="orientation-card">
+    <div class="phone-icon">↻</div>
+    <h1>Vire o celular</h1>
+    <p>Este jogo foi feito para ser jogado com o celular <strong>deitado</strong>.</p>
+    <p>Gire o aparelho para o modo horizontal para começar.</p>
+  </div>
+</div>
+<style>
+#orientation-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 5vw;
+    box-sizing: border-box;
+    background: radial-gradient(circle at center, #25315d 0%, #0b1020 72%);
+    color: white;
+    text-align: center;
+}
+.orientation-card {
+    width: min(88vw, 560px);
+    padding: 5vh 7vw;
+    border-radius: 28px;
+    background: rgba(20, 27, 53, .96);
+    border: 2px solid rgba(255,255,255,.15);
+    box-shadow: 0 20px 70px rgba(0,0,0,.45);
+}
+.orientation-card h1 {
+    margin: 1vh 0;
+    font-size: clamp(28px, 6vw, 48px);
+}
+.orientation-card p {
+    margin: 1vh 0;
+    font-size: clamp(15px, 3vw, 22px);
+    line-height: 1.4;
+}
+.phone-icon {
+    font-size: clamp(60px, 13vw, 110px);
+    line-height: 1;
+}
+</style>
+
 </body>
 </html>
