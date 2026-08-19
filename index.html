@@ -317,6 +317,35 @@
             font-size: clamp(0.64rem, 1.9vw, 0.78rem);
             font-weight: 900;
         }
+
+        #orientation-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 50;
+            background: rgba(10, 6, 18, 0.97);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            text-align: center;
+        }
+
+        #orientation-overlay h1 {
+            color: #e9bdff;
+            margin-bottom: 12px;
+            font-size: 1.8rem;
+        }
+
+        #orientation-overlay p {
+            color: #e8e3ec;
+            font-size: 1.02rem;
+            line-height: 1.45;
+        }
+
+        #orientation-overlay.show {
+            display: flex;
+        }
     </style>
 </head>
 
@@ -340,11 +369,11 @@
 
         <div id="dialogue-layer" class="hidden">
             <div class="dialogue-portraits">
-                <div class="dialogue-avatar" id="avatar-lia">LIA</div>
+                <div class="dialogue-avatar" id="avatar-luna">LUNA</div>
                 <div class="dialogue-avatar" id="avatar-bia">BIA</div>
             </div>
             <div class="dialogue-box">
-                <div id="dialogue-name">LIA</div>
+                <div id="dialogue-name">LUNA</div>
                 <div id="dialogue-text"></div>
                 <div id="dialogue-next">TOQUE ▶</div>
             </div>
@@ -394,6 +423,7 @@
         const dialogueName = document.getElementById("dialogue-name");
         const dialogueText = document.getElementById("dialogue-text");
         const dialogueNext = document.getElementById("dialogue-next");
+        const orientationOverlay = document.getElementById("orientation-overlay");
 
         const BASE_SPEED = 2.15;
         const MAZE_SPEED_MULTIPLIER = 1.4;
@@ -410,6 +440,7 @@
         let selectedChoiceObj = null;
         let doorEffectStart = 0;
         let choiceTransitionTimer = null;
+        let orientationPausedGame = false;
         let phaseSpawnAt = 0;
         let dialogueState = {
             active: false,
@@ -502,51 +533,51 @@
         const dialogueScenes = {
             fase1: {
                 correct: [
-                    { character: "Lia", text: "Agora eu entendi. Ele fazia eu duvidar do que eu mesma tinha visto." },
+                    { character: "Luna", text: "Agora eu entendi. Ele fazia eu duvidar do que eu mesma tinha visto." },
                     { character: "Bia", text: "Isso tem nome: gaslighting. Quando a verdade é distorcida para controlar alguém, é violência psicológica." }
                 ],
                 wrong: [
-                    { character: "Lia", text: "Eu achei que talvez fosse só uma fase ruim ou cansaço." },
+                    { character: "Luna", text: "Eu achei que talvez fosse só uma fase ruim ou cansaço." },
                     { character: "Bia", text: "Alguns sinais parecem pequenos no começo. Mas fazer alguém duvidar da própria percepção nunca é cuidado." }
                 ]
             },
             fase2: {
                 correct: [
-                    { character: "Lia", text: "Ficar sem acesso ao meu próprio dinheiro me deixou presa." },
+                    { character: "Luna", text: "Ficar sem acesso ao meu próprio dinheiro me deixou presa." },
                     { character: "Bia", text: "Você reconheceu um sinal importante. Controlar salário, documentos ou bens é violência patrimonial." }
                 ],
                 wrong: [
-                    { character: "Lia", text: "Ele dizia que estava organizando tudo por mim. Parecia ajuda." },
+                    { character: "Luna", text: "Ele dizia que estava organizando tudo por mim. Parecia ajuda." },
                     { character: "Bia", text: "Ajuda não tira autonomia. Quando alguém controla seu dinheiro para limitar suas escolhas, existe abuso." }
                 ]
             },
             fase3: {
                 correct: [
-                    { character: "Lia", text: "Aquelas ligações não eram proteção. Eu me senti vigiada." },
+                    { character: "Luna", text: "Aquelas ligações não eram proteção. Eu me senti vigiada." },
                     { character: "Bia", text: "Exigir localização, isolar e monitorar passos são formas de controle disfarçadas de preocupação." }
                 ],
                 wrong: [
-                    { character: "Lia", text: "Eu confundi insistência com carinho. Achei que era sinal de amor." },
+                    { character: "Luna", text: "Eu confundi insistência com carinho. Achei que era sinal de amor." },
                     { character: "Bia", text: "Amor não precisa vigiar. Relações saudáveis respeitam liberdade, amizades e privacidade." }
                 ]
             },
             fase4: {
                 correct: [
-                    { character: "Lia", text: "Espalhar mentiras e ameaçar minha intimidade me assustou muito." },
+                    { character: "Luna", text: "Espalhar mentiras e ameaçar minha intimidade me assustou muito." },
                     { character: "Bia", text: "Você percebeu bem. Difamação, humilhação e ameaça também ferem e podem ser crime." }
                 ],
                 wrong: [
-                    { character: "Lia", text: "Eu pensei que fosse só raiva depois do término." },
+                    { character: "Luna", text: "Eu pensei que fosse só raiva depois do término." },
                     { character: "Bia", text: "Raiva não justifica ameaças nem exposição. A reputação e a intimidade de uma pessoa devem ser protegidas." }
                 ]
             },
             fase5: {
                 correct: [
-                    { character: "Lia", text: "Mesmo falando baixo, ele usava medo para me prender." },
+                    { character: "Luna", text: "Mesmo falando baixo, ele usava medo para me prender." },
                     { character: "Bia", text: "A ameaça não precisa vir com grito. Chantagem e intimidação também são violência psicológica." }
                 ],
                 wrong: [
-                    { character: "Lia", text: "Por um instante, achei que fosse só ciúme ou brincadeira." },
+                    { character: "Luna", text: "Por um instante, achei que fosse só ciúme ou brincadeira." },
                     { character: "Bia", text: "Quando a fala causa medo e tenta controlar uma decisão, ela deixa de ser brincadeira." }
                 ]
             }
@@ -576,12 +607,14 @@
         window.addEventListener("resize", () => {
             resizeCanvas();
             if (isPlaying) rebuildCurrentPhaseLayout();
+            checkOrientation();
         });
 
         window.addEventListener("orientationchange", () => {
             setTimeout(() => {
                 resizeCanvas();
                 if (isPlaying) rebuildCurrentPhaseLayout();
+                checkOrientation();
             }, 160);
         });
 
@@ -612,6 +645,36 @@
             };
         }
 
+        function isPortraitBlocked() {
+            return false;
+        }
+
+        function checkOrientation() {
+            const blocked = isPortraitBlocked();
+            orientationOverlay.classList.toggle("show", blocked);
+
+            if (blocked && isPlaying) {
+                orientationPausedGame = true;
+                isPlaying = false;
+                player.vx = 0;
+                player.vy = 0;
+                player.isMoving = false;
+                joystickZone.classList.add("hidden");
+                return;
+            }
+
+            const overlaysOpen = !startScreen.classList.contains("hidden") ||
+                !msgOverlay.classList.contains("hidden") ||
+                !document.getElementById("conclusion-overlay").classList.contains("hidden") ||
+                dialogueState.active;
+
+            if (!blocked && orientationPausedGame && !overlaysOpen) {
+                orientationPausedGame = false;
+                joystickZone.classList.remove("hidden");
+                isPlaying = true;
+            }
+        }
+
         function addPerception(points) {
             perceptionScore = Math.max(0, Math.min(maxPerceptionScore, perceptionScore + points));
         }
@@ -640,16 +703,16 @@
             if (scene) return scene[isCorrect ? "correct" : "wrong"];
 
             return isCorrect ? [
-                { character: "Lia", text: "A escolha fez sentido agora." },
+                { character: "Luna", text: "A escolha fez sentido agora." },
                 { character: "Bia", text: "Perceber esses sinais ajuda a proteger escolhas e limites." }
             ] : [
-                { character: "Lia", text: "Eu achei que essa resposta também pudesse estar certa." },
+                { character: "Luna", text: "Eu achei que essa resposta também pudesse estar certa." },
                 { character: "Bia", text: "Nem todo sinal é fácil de reconhecer. O importante é aprender com a situação." }
             ];
         }
 
         function setActiveDialogueAvatar(character) {
-            document.getElementById("avatar-lia").classList.toggle("active", character === "Lia");
+            document.getElementById("avatar-luna").classList.toggle("active", character === "Luna");
             document.getElementById("avatar-bia").classList.toggle("active", character === "Bia");
         }
 
@@ -771,6 +834,11 @@
         }
 
         function startGame() {
+            if (isPortraitBlocked()) {
+                checkOrientation();
+                return;
+            }
+
             const nick = document.getElementById("nickname-input").value.trim();
             player.nickname = nick || "Hero";
 
@@ -833,7 +901,7 @@
 
             if (phase.type === "question" || phase.type === "car" || phase.type === "boat") {
                 setupQuestionPhase(phase);
-                joystickZone.classList.remove("hidden");
+                if (!isPortraitBlocked()) joystickZone.classList.remove("hidden");
                 isPlaying = true;
                 return;
             }
@@ -842,7 +910,7 @@
                 document.getElementById("question-box").classList.add("hidden");
                 showOverlayMessage("Labirinto", "Encontre a chave dourada e depois entre pela porta de saída.", "ENTENDI", () => {
                     setupMazePhase();
-                    joystickZone.classList.remove("hidden");
+                    if (!isPortraitBlocked()) joystickZone.classList.remove("hidden");
                     phaseSpawnAt = performance.now();
                     isPlaying = true;
                 });
@@ -853,7 +921,7 @@
                 document.getElementById("question-box").classList.add("hidden");
                 showOverlayMessage("Busca na Floresta", "Existem vários arbustos na floresta, mas só 3 podem ser investigados. Ache a chave e entre pela porta.", "BORA LÁ", () => {
                     setupBushPhase();
-                    joystickZone.classList.remove("hidden");
+                    if (!isPortraitBlocked()) joystickZone.classList.remove("hidden");
                     phaseSpawnAt = performance.now();
                     isPlaying = true;
                 });
@@ -863,7 +931,7 @@
                 document.getElementById("question-box").classList.add("hidden");
                 showOverlayMessage("Rede de Apoio", "Luna decidiu buscar ajuda. Percorra a praça ao entardecer e encontre os 3 pontos de apoio para liberar o caminho final.", "VAMOS LÁ", () => {
                     setupSupportPhase();
-                    joystickZone.classList.remove("hidden");
+                    if (!isPortraitBlocked()) joystickZone.classList.remove("hidden");
                     phaseSpawnAt = performance.now();
                     isPlaying = true;
                 });
@@ -1093,12 +1161,12 @@
             joystickZone.classList.add("hidden");
 
             startDialogue([
-                { character: "Lia", text: "Encontrei pessoas e canais em quem posso confiar." },
+                { character: "Luna", text: "Encontrei pessoas e canais em quem posso confiar." },
                 { character: "Bia", text: "Uma amiga, o Disque 180 e a Casa da Mulher Brasileira. Buscar apoio é um passo de coragem e o início da proteção." }
             ], () => {
                 exitDoor.unlocked = true;
                 floatingTexts.push({ x: exitDoor.x + exitDoor.width / 2, y: exitDoor.y - 40, text: "Caminho liberado!", life: 120, c: "#ffd700" });
-                joystickZone.classList.remove("hidden");
+                if (!isPortraitBlocked()) joystickZone.classList.remove("hidden");
                 isPlaying = true;
             });
         }
@@ -1128,6 +1196,7 @@
 
         function returnToStartScreen() {
             isPlaying = false;
+            orientationPausedGame = false;
             choiceLocked = false;
             selectedChoiceObj = null;
             if (choiceTransitionTimer) {
@@ -1153,6 +1222,7 @@
             confetti = [];
             resizeCanvas();
             updateLivesUI();
+            checkOrientation();
         }
 
         function winGame() {
@@ -2196,6 +2266,7 @@
         }
 
         resizeCanvas();
+        checkOrientation();
     </script>
 </body>
 
