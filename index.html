@@ -48,7 +48,7 @@
         #lives {
             font-size: clamp(0.78rem, 2.6vw, 1rem);
             margin-bottom: clamp(3px, 1vh, 8px);
-            color: #ff6969;
+            color: #ff2020;
             font-weight: 800;
             display: flex;
             align-items: center;
@@ -59,6 +59,8 @@
             display: inline-flex;
             align-items: center;
             gap: 3px;
+            font-size: clamp(0.9rem, 3vw, 1.15rem);
+            letter-spacing: 1px;
         }
 
         .life-icon {
@@ -197,6 +199,113 @@
             background: #9b59b6;
             border-color: #fff;
         }
+
+        #dialogue-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 25;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 0 clamp(10px, 3vw, 18px) max(10px, env(safe-area-inset-bottom));
+            pointer-events: auto;
+        }
+
+        .dialogue-portraits {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 clamp(8px, 4vw, 26px);
+            margin-bottom: -2px;
+        }
+
+        .dialogue-avatar {
+            min-width: clamp(68px, 16vw, 108px);
+            padding: 7px 9px;
+            border: 2px solid rgba(255, 255, 255, 0.18);
+            border-radius: 8px 8px 0 0;
+            background: rgba(16, 8, 27, 0.76);
+            color: #d7c9df;
+            font-size: clamp(0.68rem, 2vw, 0.86rem);
+            font-weight: 900;
+            letter-spacing: 0;
+            text-align: center;
+            opacity: 0.55;
+            transform: translateY(8px) scale(0.94);
+            transition: opacity 0.15s, transform 0.15s, border-color 0.15s;
+        }
+
+        .dialogue-avatar.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            border-color: #e9bdff;
+            color: #ffffff;
+            box-shadow: 0 0 16px rgba(192, 123, 228, 0.38);
+        }
+
+        .dialogue-box {
+            width: 100%;
+            max-height: min(35vh, 210px);
+            min-height: clamp(108px, 24vh, 158px);
+            background: linear-gradient(to bottom, rgba(44, 25, 65, 0.97), rgba(20, 12, 32, 0.98));
+            border: 2px solid #9f6fc3;
+            border-radius: 8px;
+            box-shadow: 0 -8px 26px rgba(0, 0, 0, 0.45);
+            padding: clamp(10px, 2.4vh, 16px) clamp(12px, 3vw, 20px);
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        #dialogue-name {
+            color: #ffdfff;
+            font-size: clamp(0.76rem, 2.2vw, 0.95rem);
+            font-weight: 900;
+        }
+
+        #dialogue-text {
+            color: #fff;
+            font-size: clamp(0.84rem, 2.5vw, 1.04rem);
+            line-height: 1.35;
+            overflow: hidden;
+        }
+
+        #dialogue-next {
+            align-self: flex-end;
+            color: #f1d2ff;
+            font-size: clamp(0.64rem, 1.9vw, 0.78rem);
+            font-weight: 900;
+        }
+
+        #orientation-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 50;
+            background: rgba(10, 6, 18, 0.97);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            text-align: center;
+        }
+
+        #orientation-overlay h1 {
+            color: #e9bdff;
+            margin-bottom: 12px;
+            font-size: 1.8rem;
+        }
+
+        #orientation-overlay p {
+            color: #e8e3ec;
+            font-size: 1.02rem;
+            line-height: 1.45;
+        }
+
+        #orientation-overlay.show {
+            display: flex;
+        }
     </style>
 </head>
 <body>
@@ -215,6 +324,23 @@
         <div id="joystick-base">
             <div id="joystick-stick"></div>
         </div>
+    </div>
+
+    <div id="dialogue-layer" class="hidden">
+        <div class="dialogue-portraits">
+            <div class="dialogue-avatar" id="avatar-lia">LIA</div>
+            <div class="dialogue-avatar" id="avatar-bia">BIA</div>
+        </div>
+        <div class="dialogue-box">
+            <div id="dialogue-name">LIA</div>
+            <div id="dialogue-text"></div>
+            <div id="dialogue-next">TOQUE ▶</div>
+        </div>
+    </div>
+
+    <div id="orientation-overlay">
+        <h1>📱 VIRE O CELULAR</h1>
+        <p>Este jogo foi desenvolvido para ser jogado na horizontal.</p>
     </div>
 
     <div id="start-screen" class="overlay">
@@ -237,6 +363,8 @@
     <div id="conclusion-overlay" class="overlay hidden">
         <h1 style="color: #ffd700;">Parabéns! Você chegou ao final!</h1>
         <p>Você concluiu todas as fases e mostrou que sabe reconhecer sinais de violência silenciosa contra a mulher.</p>
+        <p id="perception-result" style="color: #ffdfff; font-weight: 900;"></p>
+        <p id="perception-message"></p>
         <p style="color: #a8ffb2; font-weight: 800;">Conhecimento também é uma forma de proteção. Continue espalhando respeito!</p>
         <button onclick="returnToStartScreen()">Retornar ao Menu</button>
     </div>
@@ -251,15 +379,37 @@
     const startScreen = document.getElementById("start-screen");
     const msgOverlay = document.getElementById("msg-overlay");
     const livesIcons = document.getElementById("lives-icons");
+    const dialogueLayer = document.getElementById("dialogue-layer");
+    const dialogueName = document.getElementById("dialogue-name");
+    const dialogueText = document.getElementById("dialogue-text");
+    const dialogueNext = document.getElementById("dialogue-next");
+    const orientationOverlay = document.getElementById("orientation-overlay");
 
     const BASE_SPEED = 2.15;
     const MAZE_SPEED_MULTIPLIER = 1.4;
+    const SPAWN_GRACE_MS = 900;
     let animationId;
     let isPlaying = false;
     let lives = 3;
     let currentPhaseIndex = 0;
     let roadOffset = 0;
     let waterOffset = 0;
+    let perceptionScore = 0;
+    let maxPerceptionScore = 0;
+    let choiceLocked = false;
+    let selectedChoiceObj = null;
+    let doorEffectStart = 0;
+    let choiceTransitionTimer = null;
+    let orientationPausedGame = false;
+    let phaseSpawnAt = 0;
+    let dialogueState = {
+        active: false,
+        lines: [],
+        index: 0,
+        charIndex: 0,
+        lastTick: 0,
+        onComplete: null
+    };
 
     const player = {
         nickname: "",
@@ -294,8 +444,8 @@
             bg: "backrooms",
             q: {
                 text: "O namorado de Luna diz que é melhor ele 'cuidar' do salário dela e deixa Luna sem dinheiro próprio. Isso parece ajuda, mas configura:",
-                options: ["A) Violência Patrimonial", "B) Proteção Financeira", "C) Divisão Justa do Casal", "D) Economia doméstica"],
-                correct: 0,
+                options: ["A) Proteção Financeira", "B) Divisão Justa do Casal", "C) Economia doméstica", "D) Violência Patrimonial"],
+                correct: 3,
                 explanation: "A violência patrimonial ocorre quando o agressor controla, retém ou destrói dinheiro, bens ou documentos da vítima, tirando sua independência."
             }
         },
@@ -305,8 +455,8 @@
             bg: "road",
             q: {
                 text: "Luna saiu de carro com amigas. O parceiro exigiu localização em tempo real, ligou muitas vezes e disse que ela estava 'procurando problema'. O que esse comportamento revela?",
-                options: ["A) Muito amor", "B) Isolamento e controle", "C) Preocupação normal", "D) Zelo e cuidado"],
-                correct: 1,
+                options: ["A) Muito amor", "B) Preocupação normal", "C) Isolamento e controle", "D) Zelo e cuidado"],
+                correct: 2,
                 explanation: "O controle excessivo e a tentativa de monitorar os passos da parceira são sinais de um relacionamento abusivo disfarçados de 'cuidado'."
             }
         },
@@ -328,12 +478,70 @@
             bg: "water",
             q: {
                 text: "Luna recebe mensagens do parceiro dizendo: 'se você terminar comigo, vai se arrepender'. Ele fala baixo, sem gritar, mas usa medo para controlá-la. Isso é:",
-                options: ["A) Ameaça e violência psicológica", "B) Brincadeira de casal", "C) Ciúme aceitável", "D) Prova de amor"],
-                correct: 0,
+                options: ["A) Brincadeira de casal", "B) Ciúme aceitável", "C) Prova de amor", "D) Ameaça e violência psicológica"],
+                correct: 3,
                 explanation: "Ameaças, chantagens e intimidação são formas de violência psicológica. Mesmo sem agressão física, o medo usado para controlar alguém é violência."
             }
-        }
+        },
+        { id: "fase6", type: "support", bg: "shelter" }
     ];
+
+    maxPerceptionScore = gamePhases.filter(phase => phase.q).length * 10;
+    const totalLives = gamePhases.filter(phase => phase.q).length;
+    lives = totalLives;
+
+    const dialogueScenes = {
+        fase1: {
+            correct: [
+                { character: "Lia", text: "Agora eu entendi. Ele fazia eu duvidar do que eu mesma tinha visto." },
+                { character: "Bia", text: "Isso tem nome: gaslighting. Quando a verdade é distorcida para controlar alguém, é violência psicológica." }
+            ],
+            wrong: [
+                { character: "Lia", text: "Eu achei que talvez fosse só uma fase ruim ou cansaço." },
+                { character: "Bia", text: "Alguns sinais parecem pequenos no começo. Mas fazer alguém duvidar da própria percepção nunca é cuidado." }
+            ]
+        },
+        fase2: {
+            correct: [
+                { character: "Lia", text: "Ficar sem acesso ao meu próprio dinheiro me deixou presa." },
+                { character: "Bia", text: "Você reconheceu um sinal importante. Controlar salário, documentos ou bens é violência patrimonial." }
+            ],
+            wrong: [
+                { character: "Lia", text: "Ele dizia que estava organizando tudo por mim. Parecia ajuda." },
+                { character: "Bia", text: "Ajuda não tira autonomia. Quando alguém controla seu dinheiro para limitar suas escolhas, existe abuso." }
+            ]
+        },
+        fase3: {
+            correct: [
+                { character: "Lia", text: "Aquelas ligações não eram proteção. Eu me senti vigiada." },
+                { character: "Bia", text: "Exigir localização, isolar e monitorar passos são formas de controle disfarçadas de preocupação." }
+            ],
+            wrong: [
+                { character: "Lia", text: "Eu confundi insistência com carinho. Achei que era sinal de amor." },
+                { character: "Bia", text: "Amor não precisa vigiar. Relações saudáveis respeitam liberdade, amizades e privacidade." }
+            ]
+        },
+        fase4: {
+            correct: [
+                { character: "Lia", text: "Espalhar mentiras e ameaçar minha intimidade me assustou muito." },
+                { character: "Bia", text: "Você percebeu bem. Difamação, humilhação e ameaça também ferem e podem ser crime." }
+            ],
+            wrong: [
+                { character: "Lia", text: "Eu pensei que fosse só raiva depois do término." },
+                { character: "Bia", text: "Raiva não justifica ameaças nem exposição. A reputação e a intimidade de uma pessoa devem ser protegidas." }
+            ]
+        },
+        fase5: {
+            correct: [
+                { character: "Lia", text: "Mesmo falando baixo, ele usava medo para me prender." },
+                { character: "Bia", text: "A ameaça não precisa vir com grito. Chantagem e intimidação também são violência psicológica." }
+            ],
+            wrong: [
+                { character: "Lia", text: "Por um instante, achei que fosse só ciúme ou brincadeira." },
+                { character: "Bia", text: "Quando a fala causa medo e tenta controlar uma decisão, ela deixa de ser brincadeira." }
+            ]
+        }
+    };
 
     let doors = [];
     let tunnels = [];
@@ -346,6 +554,10 @@
     let floatingTexts = [];
     let confetti = [];
     let mazeCells = null;
+    let supportSpots = [];
+    let supportFound = 0;
+    let supportCompleteTriggered = false;
+    let starField = null;
 
     function resizeCanvas() {
         canvas.width = canvas.parentElement.clientWidth;
@@ -355,6 +567,15 @@
     window.addEventListener("resize", () => {
         resizeCanvas();
         if (isPlaying) rebuildCurrentPhaseLayout();
+        checkOrientation();
+    });
+
+    window.addEventListener("orientationchange", () => {
+        setTimeout(() => {
+            resizeCanvas();
+            if (isPlaying) rebuildCurrentPhaseLayout();
+            checkOrientation();
+        }, 160);
     });
 
     function selectGender(g) {
@@ -364,7 +585,11 @@
     }
 
     function updateLivesUI() {
-        livesIcons.textContent = String(lives);
+        let icons = "";
+        for (let i = 0; i < totalLives; i++) {
+            icons += i < lives ? "❤️" : "🖤";
+        }
+        livesIcons.textContent = icons;
     }
 
     function showOverlayMessage(title, desc, btnText, callback) {
@@ -380,7 +605,201 @@
         };
     }
 
+    function isPortraitBlocked() {
+        const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+        return isTouchDevice && window.innerHeight > window.innerWidth;
+    }
+
+    function checkOrientation() {
+        const blocked = isPortraitBlocked();
+        orientationOverlay.classList.toggle("show", blocked);
+
+        if (blocked && isPlaying) {
+            orientationPausedGame = true;
+            isPlaying = false;
+            player.vx = 0;
+            player.vy = 0;
+            player.isMoving = false;
+            joystickZone.classList.add("hidden");
+            return;
+        }
+
+        const overlaysOpen = !startScreen.classList.contains("hidden") ||
+            !msgOverlay.classList.contains("hidden") ||
+            !document.getElementById("conclusion-overlay").classList.contains("hidden") ||
+            dialogueState.active;
+
+        if (!blocked && orientationPausedGame && !overlaysOpen) {
+            orientationPausedGame = false;
+            joystickZone.classList.remove("hidden");
+            isPlaying = true;
+        }
+    }
+
+    function addPerception(points) {
+        perceptionScore = Math.max(0, Math.min(maxPerceptionScore, perceptionScore + points));
+    }
+
+    function getLivesMessage(remaining, total) {
+        if (remaining === total) {
+            return "Percepção MUITO BOA! Você não errou nenhuma pergunta, reconhecendo muito bem os sinais de violência silenciosa.";
+        }
+        if (remaining === total - 1) {
+            return "Percepção BOA! Você errou muito pouco e ainda assim conseguiu identificar bem os sinais de violência silenciosa.";
+        }
+        const half = Math.ceil(total / 2);
+        if (remaining >= half) {
+            return "Percepção RAZOÁVEL! Você acertou boa parte, mas alguns sinais de violência silenciosa ainda podem passar despercebidos.";
+        }
+        return "Percepção PODE MELHORAR! Vale muito a pena revisar os sinais de violência silenciosa mostrados no jogo, pois vários deles passaram despercebidos.";
+    }
+
+    function updateConclusionPerception() {
+        document.getElementById("perception-result").innerText = `VOCÊ TERMINOU COM ${lives} DE ${totalLives} CORAÇÕES ❤️`;
+        document.getElementById("perception-message").innerText = getLivesMessage(lives, totalLives);
+    }
+
+    function buildChoiceDialogue(phase, isCorrect) {
+        const scene = dialogueScenes[phase.id];
+        if (scene) return scene[isCorrect ? "correct" : "wrong"];
+
+        return isCorrect ? [
+            { character: "Lia", text: "A escolha fez sentido agora." },
+            { character: "Bia", text: "Perceber esses sinais ajuda a proteger escolhas e limites." }
+        ] : [
+            { character: "Lia", text: "Eu achei que essa resposta também pudesse estar certa." },
+            { character: "Bia", text: "Nem todo sinal é fácil de reconhecer. O importante é aprender com a situação." }
+        ];
+    }
+
+    function setActiveDialogueAvatar(character) {
+        document.getElementById("avatar-lia").classList.toggle("active", character === "Lia");
+        document.getElementById("avatar-bia").classList.toggle("active", character === "Bia");
+    }
+
+    function showDialogueLine() {
+        const line = dialogueState.lines[dialogueState.index];
+        if (!line) return;
+        dialogueName.innerText = line.character.toUpperCase();
+        dialogueText.innerText = "";
+        dialogueNext.innerText = "TOQUE ▶";
+        dialogueState.charIndex = 0;
+        dialogueState.lastTick = performance.now();
+        setActiveDialogueAvatar(line.character);
+    }
+
+    function startDialogue(lines, onComplete) {
+        dialogueState = {
+            active: true,
+            lines,
+            index: 0,
+            charIndex: 0,
+            lastTick: performance.now(),
+            onComplete
+        };
+        resetJoystick();
+        joystickZone.classList.add("hidden");
+        dialogueLayer.classList.remove("hidden");
+        showDialogueLine();
+    }
+
+    function tickDialogue() {
+        if (!dialogueState.active) return;
+        const line = dialogueState.lines[dialogueState.index];
+        if (!line || dialogueState.charIndex >= line.text.length) return;
+
+        const now = performance.now();
+        const step = Math.max(1, Math.floor((now - dialogueState.lastTick) / 22));
+        if (now - dialogueState.lastTick >= 22) {
+            dialogueState.charIndex = Math.min(line.text.length, dialogueState.charIndex + step);
+            dialogueText.innerText = line.text.slice(0, dialogueState.charIndex);
+            dialogueState.lastTick = now;
+        }
+    }
+
+    function nextDialogueLine() {
+        if (!dialogueState.active) return;
+        const line = dialogueState.lines[dialogueState.index];
+        if (line && dialogueState.charIndex < line.text.length) {
+            dialogueState.charIndex = line.text.length;
+            dialogueText.innerText = line.text;
+            return;
+        }
+
+        dialogueState.index++;
+        if (dialogueState.index >= dialogueState.lines.length) {
+            finishDialogue();
+            return;
+        }
+        showDialogueLine();
+    }
+
+    function hideDialogue() {
+        dialogueLayer.classList.add("hidden");
+        setActiveDialogueAvatar("");
+        dialogueState.active = false;
+        dialogueState.lines = [];
+        dialogueState.index = 0;
+        dialogueState.charIndex = 0;
+        dialogueState.onComplete = null;
+    }
+
+    function finishDialogue() {
+        const onComplete = dialogueState.onComplete;
+        hideDialogue();
+        if (onComplete) onComplete();
+    }
+
+    function updateChoiceAnimation() {
+        if (!selectedChoiceObj) return;
+        const progress = Math.min(1, (performance.now() - doorEffectStart) / 420);
+        selectedChoiceObj.openProgress = progress;
+    }
+
+    function drawChoiceTransition() {
+        if (!selectedChoiceObj) return;
+        const progress = selectedChoiceObj.openProgress || 0;
+        ctx.save();
+        ctx.fillStyle = `rgba(215, 170, 255, ${progress * 0.18})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+    }
+
+    function finishChoiceInteraction(phase, isCorrect) {
+        if (selectedChoiceObj) selectedChoiceObj.openProgress = 0;
+        selectedChoiceObj = null;
+        choiceLocked = false;
+
+        if (isCorrect) {
+            processCorrectAnswer(phase.q.explanation);
+        } else {
+            processWrongAnswer(phase.q.explanation);
+        }
+    }
+
+    function handleChoiceInteraction(obj, phase) {
+        if (choiceLocked || dialogueState.active) return;
+        choiceLocked = true;
+        isPlaying = false;
+        selectedChoiceObj = obj;
+        doorEffectStart = performance.now();
+        selectedChoiceObj.openProgress = 0;
+        resetJoystick();
+        joystickZone.classList.add("hidden");
+
+        if (choiceTransitionTimer) clearTimeout(choiceTransitionTimer);
+        choiceTransitionTimer = setTimeout(() => {
+            choiceTransitionTimer = null;
+            startDialogue(buildChoiceDialogue(phase, obj.isCorrect), () => finishChoiceInteraction(phase, obj.isCorrect));
+        }, 430);
+    }
+
     function startGame() {
+        if (isPortraitBlocked()) {
+            checkOrientation();
+            return;
+        }
+
         const nick = document.getElementById("nickname-input").value.trim();
         player.nickname = nick || "Hero";
 
@@ -390,9 +809,13 @@
         joystickZone.classList.remove("hidden");
         resizeCanvas();
 
-        lives = 3;
+        lives = totalLives;
+        perceptionScore = 0;
         currentPhaseIndex = 0;
+        choiceLocked = false;
+        selectedChoiceObj = null;
         confetti = [];
+        hideDialogue();
         loadCurrentPhase();
 
         if (!animationId) loop();
@@ -420,6 +843,9 @@
         bushKeyObj = null;
         exitDoor = null;
         mazeCells = null;
+        supportSpots = [];
+        supportFound = 0;
+        supportCompleteTriggered = false;
     }
 
     function loadCurrentPhase() {
@@ -432,9 +858,11 @@
         clearPhaseObjects();
         const phase = gamePhases[currentPhaseIndex];
         resetPlayerForPhase(phase);
+        phaseSpawnAt = performance.now();
 
         if (phase.type === "question" || phase.type === "car" || phase.type === "boat") {
             setupQuestionPhase(phase);
+            if (!isPortraitBlocked()) joystickZone.classList.remove("hidden");
             isPlaying = true;
             return;
         }
@@ -443,6 +871,8 @@
             document.getElementById("question-box").classList.add("hidden");
             showOverlayMessage("Labirinto", "Encontre a chave dourada e depois entre pela porta de saída.", "ENTENDI", () => {
                 setupMazePhase();
+                if (!isPortraitBlocked()) joystickZone.classList.remove("hidden");
+                phaseSpawnAt = performance.now();
                 isPlaying = true;
             });
             return;
@@ -452,6 +882,18 @@
             document.getElementById("question-box").classList.add("hidden");
             showOverlayMessage("Busca na Floresta", "Existem vários arbustos na floresta, mas só 3 podem ser investigados. Ache a chave e entre pela porta.", "BORA LÁ", () => {
                 setupBushPhase();
+                if (!isPortraitBlocked()) joystickZone.classList.remove("hidden");
+                phaseSpawnAt = performance.now();
+                isPlaying = true;
+            });
+        }
+
+        if (phase.type === "support") {
+            document.getElementById("question-box").classList.add("hidden");
+            showOverlayMessage("Rede de Apoio", "Luna decidiu buscar ajuda. Percorra a praça ao entardecer e encontre os 3 pontos de apoio para liberar o caminho final.", "VAMOS LÁ", () => {
+                setupSupportPhase();
+                if (!isPortraitBlocked()) joystickZone.classList.remove("hidden");
+                phaseSpawnAt = performance.now();
                 isPlaying = true;
             });
         }
@@ -466,6 +908,7 @@
         if (phase.type === "question" || phase.type === "car" || phase.type === "boat") setupAnswerObjects(phase);
         if (phase.type === "maze") setupMazePhase(false);
         if (phase.type === "bushes") setupBushPhase(false);
+        if (phase.type === "support") setupSupportPhase(false);
         player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, oldXRatio * canvas.width));
         player.y = Math.max(player.height / 2, Math.min(canvas.height - player.height / 2, oldYRatio * canvas.height));
     }
@@ -515,7 +958,7 @@
     function setupMazePhase(placePlayer = true) {
         const layout = [
             "###############",
-            "#D....#.....K.#",
+            "#.....#.....K.#",
             "#.###.#.#####.#",
             "#...#.#.....#.#",
             "###.#.#####.#.#",
@@ -529,7 +972,7 @@
             "#.#####.#.###.#",
             "#.....#.#.....#",
             "#####.#.#####.#",
-            "#.....#.....#.#",
+            "#.....#.....D.#",
             "#.#########.#.#",
             "#S..........#.#",
             "###############"
@@ -624,16 +1067,84 @@
         }));
     }
 
+    function setupSupportPhase(placePlayer = true) {
+        if (placePlayer) {
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 82;
+        }
+
+        exitDoor = {
+            x: canvas.width / 2 - 38,
+            y: 30,
+            width: 76,
+            height: 104,
+            unlocked: false,
+            label: "SAÍDA"
+        };
+
+        supportFound = 0;
+        supportCompleteTriggered = false;
+
+        const points = [
+            { x: canvas.width * 0.20, y: canvas.height * 0.58, icon: "♀", label: "AMIGA" },
+            { x: canvas.width * 0.50, y: canvas.height * 0.38, icon: "180", label: "CENTRAL 180" },
+            { x: canvas.width * 0.80, y: canvas.height * 0.58, icon: "🏠", label: "CASA DE APOIO" }
+        ];
+
+        supportSpots = points.map(p => ({
+            x: p.x - 26,
+            y: p.y - 26,
+            w: 52,
+            h: 52,
+            found: false,
+            icon: p.icon,
+            label: p.label
+        }));
+
+        if (!starField || starField.canvasWidth !== canvas.width || starField.canvasHeight !== canvas.height) {
+            const stars = [];
+            for (let i = 0; i < 40; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height * 0.55,
+                    r: Math.random() * 1.6 + 0.4
+                });
+            }
+            starField = { stars, canvasWidth: canvas.width, canvasHeight: canvas.height };
+        }
+    }
+
+    function triggerSupportDialogue() {
+        if (supportCompleteTriggered) return;
+        supportCompleteTriggered = true;
+        isPlaying = false;
+        resetJoystick();
+        joystickZone.classList.add("hidden");
+
+        startDialogue([
+            { character: "Lia", text: "Encontrei pessoas e canais em quem posso confiar." },
+            { character: "Bia", text: "Uma amiga, o Disque 180 e a Casa da Mulher Brasileira. Buscar apoio é um passo de coragem e o início da proteção." }
+        ], () => {
+            exitDoor.unlocked = true;
+            floatingTexts.push({ x: exitDoor.x + exitDoor.width / 2, y: exitDoor.y - 40, text: "Caminho liberado!", life: 120, c: "#ffd700" });
+            if (!isPortraitBlocked()) joystickZone.classList.remove("hidden");
+            isPlaying = true;
+        });
+    }
+
     function advancePhase() {
+        choiceLocked = false;
+        selectedChoiceObj = null;
         currentPhaseIndex++;
         loadCurrentPhase();
     }
 
     function processCorrectAnswer(explanation) {
+        addPerception(10);
         showOverlayMessage("Resposta Correta!", explanation, "PRÓXIMO", advancePhase);
     }
 
-    function processWrongAnswer() {
+    function processWrongAnswer(explanation) {
         lives--;
         updateLivesUI();
         if (lives <= 0) {
@@ -641,14 +1152,19 @@
             return;
         }
 
-        player.x = canvas.width / 2;
-        player.y = canvas.height - 78;
-        player.vx = 0;
-        player.vy = 0;
+        showOverlayMessage("Resposta Incorreta", explanation, "PRÓXIMO", advancePhase);
     }
 
     function returnToStartScreen() {
         isPlaying = false;
+        orientationPausedGame = false;
+        choiceLocked = false;
+        selectedChoiceObj = null;
+        if (choiceTransitionTimer) {
+            clearTimeout(choiceTransitionTimer);
+            choiceTransitionTimer = null;
+        }
+        hideDialogue();
         if (animationId) {
             cancelAnimationFrame(animationId);
             animationId = null;
@@ -661,17 +1177,21 @@
         startScreen.classList.remove("hidden");
         document.getElementById("nickname-input").value = "";
         player.nickname = "";
-        lives = 3;
+        lives = totalLives;
+        perceptionScore = 0;
         currentPhaseIndex = 0;
         confetti = [];
         resizeCanvas();
         updateLivesUI();
+        checkOrientation();
     }
 
     function winGame() {
         isPlaying = false;
+        hideDialogue();
         uiTop.classList.add("hidden");
         joystickZone.classList.add("hidden");
+        updateConclusionPerception();
         document.getElementById("conclusion-overlay").classList.remove("hidden");
         confetti = [];
         for (let i = 0; i < 120; i++) {
@@ -708,6 +1228,9 @@
 
     function resetJoystick() {
         isDragging = false;
+        Object.keys(keys).forEach(key => {
+            keys[key] = false;
+        });
         stick.style.transform = "translate(-50%, -50%)";
         player.vx = 0;
         player.vy = 0;
@@ -741,6 +1264,11 @@
 
     window.addEventListener("keydown", (e) => {
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+        if (dialogueState.active && (e.key === " " || e.key === "Enter")) {
+            e.preventDefault();
+            nextDialogueLine();
+            return;
+        }
         const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
         if (Object.prototype.hasOwnProperty.call(keys, key)) {
             e.preventDefault();
@@ -751,6 +1279,11 @@
     window.addEventListener("keyup", (e) => {
         const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
         if (Object.prototype.hasOwnProperty.call(keys, key)) keys[key] = false;
+    });
+
+    dialogueLayer.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        nextDialogueLine();
     });
 
     function updateKeyboard() {
@@ -819,18 +1352,23 @@
             player.y = nextY;
         }
 
-        const interactables = phase.type === "car" ? tunnels : ((phase.type === "question" || phase.type === "boat") ? doors : []);
-        for (const obj of interactables) {
-            if (checkAABB(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height, obj)) {
-                if (obj.isCorrect) processCorrectAnswer(phase.q.explanation);
-                else processWrongAnswer();
+        // Pequena "carência" logo após o spawn da fase, para o personagem
+        // não acionar uma porta/mensagem de resposta assim que ganha o controle.
+        const inSpawnGrace = (performance.now() - phaseSpawnAt) < SPAWN_GRACE_MS;
+
+        if (!inSpawnGrace) {
+            const interactables = phase.type === "car" ? tunnels : ((phase.type === "question" || phase.type === "boat") ? doors : []);
+            for (const obj of interactables) {
+                if (checkAABB(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height, obj)) {
+                    handleChoiceInteraction(obj, phase);
+                    return;
+                }
+            }
+
+            if (exitDoor && exitDoor.unlocked && checkAABB(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height, exitDoor)) {
+                advancePhase();
                 return;
             }
-        }
-
-        if (exitDoor && exitDoor.unlocked && checkAABB(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height, exitDoor)) {
-            advancePhase();
-            return;
         }
 
         if (phase.type === "bushes") {
@@ -860,6 +1398,19 @@
             }
         }
 
+        if (phase.type === "support") {
+            for (const s of supportSpots) {
+                if (!s.found && checkAABB(player.x - player.width / 2, player.y - player.height / 2, player.width, player.height, s)) {
+                    s.found = true;
+                    supportFound++;
+                    floatingTexts.push({ x: s.x + s.w / 2, y: s.y - 6, text: `${s.label} (${supportFound}/${supportSpots.length})`, life: 110, c: "#ffe27a" });
+                    if (supportFound >= supportSpots.length) {
+                        triggerSupportDialogue();
+                    }
+                }
+            }
+        }
+
         floatingTexts.forEach(ft => {
             ft.y -= 0.45;
             ft.life--;
@@ -877,6 +1428,7 @@
         else if (type === "forest2") drawForestBushes();
         else if (type === "house") drawHouse();
         else if (type === "water") drawWater();
+        else if (type === "shelter") drawShelter();
         else {
             ctx.fillStyle = "#000";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1072,6 +1624,92 @@
         }
     }
 
+    function drawShelter() {
+        const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        sky.addColorStop(0, "#241242");
+        sky.addColorStop(0.45, "#6b2f5c");
+        sky.addColorStop(0.75, "#c65a3f");
+        sky.addColorStop(1, "#f2a34c");
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (starField && starField.canvasWidth === canvas.width) {
+            ctx.fillStyle = "rgba(255,255,255,0.85)";
+            starField.stars.forEach(s => {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        ctx.fillStyle = "rgba(255,244,214,0.92)";
+        ctx.beginPath();
+        ctx.arc(canvas.width * 0.80, canvas.height * 0.16, 30, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(255,244,214,0.18)";
+        ctx.beginPath();
+        ctx.arc(canvas.width * 0.80, canvas.height * 0.16, 46, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#1c1030";
+        const skylineBase = canvas.height * 0.62;
+        const buildingCount = 9;
+        const bw = canvas.width / buildingCount;
+        for (let i = 0; i < buildingCount; i++) {
+            const h = 70 + ((i * 53) % 150);
+            ctx.fillRect(i * bw, skylineBase - h + (canvas.height - skylineBase), bw - 5, h);
+        }
+
+        ctx.fillStyle = "#33204a";
+        ctx.fillRect(0, canvas.height * 0.72, canvas.width, canvas.height * 0.28);
+
+        ctx.fillStyle = "rgba(255,255,255,0.10)";
+        for (let i = 0; i < 6; i++) {
+            const px = (canvas.width / 6) * i + 20;
+            ctx.beginPath();
+            ctx.arc(px, canvas.height * 0.86, 26, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.fillStyle = "#e9b06b";
+        ctx.font = "bold 11px Arial";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(0,0,0,0.28)";
+        ctx.fillRect(canvas.width * 0.5 - 110, 20, 220, 20);
+        ctx.fillStyle = "#ffe9c2";
+        ctx.fillText("ENCONTRE OS 3 PONTOS DE APOIO", canvas.width / 2, 34);
+
+        supportSpots.forEach(drawSupportSpot);
+    }
+
+    function drawSupportSpot(s) {
+        const cx = s.x + s.w / 2;
+        const cy = s.y + s.h / 2;
+        ctx.save();
+        ctx.fillStyle = s.found ? "rgba(255,215,0,0.22)" : "rgba(255,255,255,0.14)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, s.w * 0.62, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = s.found ? "#ffd700" : "#ffe9b0";
+        ctx.beginPath();
+        ctx.arc(cx, cy, s.w * 0.34, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#2b1750";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = "#2b1750";
+        ctx.font = "bold 12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(s.icon, cx, cy + 4);
+
+        ctx.fillStyle = "#fff4d8";
+        ctx.font = "bold 10px Arial";
+        ctx.fillText(s.found ? "✓ " + s.label : s.label, cx, s.y + s.h + 14);
+        ctx.restore();
+    }
+
     function drawLeafCluster(x, y, r, color) {
         ctx.fillStyle = color;
         ctx.beginPath();
@@ -1128,8 +1766,16 @@
         const w = d.width || d.w;
         const h = d.height || d.h;
         const locked = d.unlocked === false;
+        const openProgress = d.openProgress || 0;
 
         ctx.save();
+        if (openProgress > 0) {
+            ctx.translate(d.x + w / 2, d.y + h / 2);
+            ctx.scale(1 + openProgress * 0.08, 1 + openProgress * 0.04);
+            ctx.translate(-(d.x + w / 2), -(d.y + h / 2));
+            ctx.shadowColor = "rgba(229, 189, 255, 0.55)";
+            ctx.shadowBlur = 14 * openProgress;
+        }
         if (locked) ctx.globalAlpha = 0.76;
 
         ctx.fillStyle = "rgba(0,0,0,0.35)";
@@ -1193,6 +1839,12 @@
             ctx.arc(d.x + w / 2, d.y + h * 0.62, 9, Math.PI, 0);
             ctx.stroke();
         }
+
+        if (openProgress > 0) {
+            ctx.globalAlpha = openProgress * 0.42;
+            ctx.fillStyle = "#f5d6ff";
+            ctx.fillRect(d.x + w * 0.18, d.y + h * 0.16, w * 0.64, h * 0.78);
+        }
         ctx.restore();
     }
 
@@ -1201,8 +1853,16 @@
         const h = t.height;
         const cx = t.x + w / 2;
         const archTop = t.y + 18;
+        const openProgress = t.openProgress || 0;
 
         ctx.save();
+        if (openProgress > 0) {
+            ctx.translate(cx, t.y + h / 2);
+            ctx.scale(1 + openProgress * 0.08, 1 + openProgress * 0.04);
+            ctx.translate(-cx, -(t.y + h / 2));
+            ctx.shadowColor = "rgba(229, 189, 255, 0.48)";
+            ctx.shadowBlur = 14 * openProgress;
+        }
 
         // Shadow under the tunnel.
         ctx.fillStyle = "rgba(0,0,0,0.30)";
@@ -1265,6 +1925,12 @@
         ctx.font = "bold 13px Arial";
         ctx.textAlign = "center";
         ctx.fillText(t.label, cx, t.y - 15);
+
+        if (openProgress > 0) {
+            ctx.globalAlpha = openProgress * 0.36;
+            ctx.fillStyle = "#f5d6ff";
+            ctx.fillRect(t.x + w * 0.22, t.y + h * 0.22, w * 0.56, h * 0.76);
+        }
 
         ctx.restore();
     }
@@ -1436,37 +2102,64 @@
             ctx.fill();
             ctx.fillRect(px - 9, py - 26, 18, 5);
         } else {
-            ctx.fillStyle = "#4b2d6f";
+            ctx.fillStyle = "#2f1748";
             ctx.beginPath();
             ctx.moveTo(px - 13, py - 13);
-            ctx.lineTo(px + 13, py - 13);
+            ctx.quadraticCurveTo(px, py - 17, px + 13, py - 13);
             ctx.lineTo(px + 15, py + 9);
             ctx.lineTo(px - 15, py + 9);
             ctx.closePath();
             ctx.fill();
-            ctx.fillStyle = "#6f2da8";
-            ctx.fillRect(px - 9, py - 11, 18, 16);
+
+            ctx.fillStyle = "#7a35b4";
+            ctx.beginPath();
+            ctx.moveTo(px - 10, py - 12);
+            ctx.lineTo(px + 10, py - 12);
+            ctx.lineTo(px + 12, py + 6);
+            ctx.quadraticCurveTo(px, py + 10, px - 12, py + 6);
+            ctx.closePath();
+            ctx.fill();
+
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 7px Arial";
             ctx.textAlign = "center";
             ctx.fillText("CIEE", px, py - 1);
+
             ctx.fillStyle = "#d4a373";
-            ctx.fillRect(px - 14, py - 8, 4, 12 + legOffset);
-            ctx.fillRect(px + 10, py - 8, 4, 12 - legOffset);
-            ctx.fillStyle = "#3a1f04";
+            ctx.fillRect(px - 15, py - 8, 4, 12 + legOffset);
+            ctx.fillRect(px + 11, py - 8, 4, 12 - legOffset);
+
+            ctx.fillStyle = "#f1c27d";
+            ctx.fillRect(px - 4, py - 10, 8, 5);
+
+            ctx.fillStyle = "#3f2414";
             ctx.beginPath();
-            ctx.arc(px, py - 18, 14, 0, Math.PI * 2);
+            ctx.ellipse(px, py - 20, 12, 13, 0, 0, Math.PI * 2);
             ctx.fill();
+
             ctx.fillStyle = "#f1c27d";
             ctx.beginPath();
-            ctx.arc(px, py - 18, 10, 0, Math.PI * 2);
+            ctx.ellipse(px, py - 18, 9.5, 10.5, 0, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = "#3a1f04";
+
+            ctx.fillStyle = "#3f2414";
             ctx.beginPath();
-            ctx.arc(px, py - 21, 10, Math.PI, 0);
+            ctx.moveTo(px - 10, py - 21);
+            ctx.quadraticCurveTo(px - 5, py - 31, px + 8, py - 26);
+            ctx.quadraticCurveTo(px + 12, py - 22, px + 9, py - 16);
+            ctx.quadraticCurveTo(px + 3, py - 22, px - 10, py - 21);
             ctx.fill();
-            ctx.fillRect(px - 12, py - 18, 4, 17);
-            ctx.fillRect(px + 8, py - 18, 4, 17);
+
+            ctx.fillStyle = "#4b2a18";
+            ctx.beginPath();
+            ctx.ellipse(px - 10, py - 12, 4, 12, -0.08, 0, Math.PI * 2);
+            ctx.ellipse(px + 10, py - 12, 4, 12, 0.08, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "rgba(255,255,255,0.18)";
+            ctx.beginPath();
+            ctx.arc(px + 5, py - 25, 2.4, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         ctx.fillStyle = "white";
@@ -1495,12 +2188,24 @@
     }
 
     function loop() {
+        updateChoiceAnimation();
+        tickDialogue();
+
         if (isPlaying) {
             update();
             const phase = gamePhases[currentPhaseIndex];
             drawBackground(phase.bg);
             drawInteractables(phase.type);
             drawPlayer();
+            drawChoiceTransition();
+        } else if (selectedChoiceObj || dialogueState.active) {
+            const phase = gamePhases[currentPhaseIndex];
+            if (phase) {
+                drawBackground(phase.bg);
+                drawInteractables(phase.type);
+                drawPlayer();
+                drawChoiceTransition();
+            }
         }
 
         animationId = requestAnimationFrame(loop);
@@ -1522,6 +2227,7 @@
     }
 
     resizeCanvas();
+    checkOrientation();
 </script>
 </body>
 </html>
