@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#10091a">
+    <meta name="description" content="Jornada da Consciência — minigame educativo e interativo sobre violência silenciosa contra a mulher.">
+    <title>Jornada da Consciência</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game-container">
+        <div id="ui-top" class="hidden">
+            <div id="lives">Vidas: <span id="lives-icons"></span></div>
+            <div id="question-box">
+                <p id="question-text"></p>
+                <div id="options-list"></div>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="joystick-zone" class="hidden">
+            <div id="joystick-base">
+                <div id="joystick-stick"></div>
+            </div>
+        </div>
+
+        <div id="dialogue-layer" class="hidden">
+            <div class="dialogue-portraits">
+                <div class="dialogue-avatar" id="avatar-luna">LUNA</div>
+                <div class="dialogue-avatar" id="avatar-bia">BIA</div>
+            </div>
+            <div class="dialogue-box">
+                <div id="dialogue-name">LUNA</div>
+                <div id="dialogue-text"></div>
+                <div id="dialogue-next">TOQUE ▶</div>
+            </div>
+        </div>
+
+        <div id="start-screen" class="overlay start-overlay">
+            <div class="start-panel">
+                <div class="game-badge">MINIGAME EDUCATIVO • CONSCIENTIZAÇÃO</div>
+                <div class="start-kicker">UMA EXPERIÊNCIA INTERATIVA</div>
+                <h1>Jornada da<br><span>Consciência</span></h1>
+                <p class="start-lead">Uma aventura criada para falar sobre <strong>violência silenciosa contra a mulher</strong> de um jeito mais próximo da linguagem dos jovens.</p>
+
+                <div class="impact-card">
+                    <div class="impact-icon">!</div>
+                    <div>
+                        <strong>Por que este jogo existe?</strong>
+                        <span>Você vai explorar, conversar e tomar decisões para reconhecer sinais que muitas vezes passam despercebidos.</span>
+                    </div>
+                </div>
+
+                <div class="start-section-title">CRIE SEU PERSONAGEM</div>
+                <input type="text" id="nickname-input" placeholder="Digite seu nickname" maxlength="8" pattern="[a-zA-Z0-9]+" autocomplete="off" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '')">
+                <div class="gender-selector">
+                    <button class="gender-btn selected" id="btn-boy" onclick="selectGender('boy')">MENINO</button>
+                    <button class="gender-btn" id="btn-girl" onclick="selectGender('girl')">MENINA</button>
+                </div>
+                <button class="start-button" onclick="startGame()"><span>INICIAR JORNADA</span><b>▶</b></button>
+                <div class="start-note">Uma experiência educativa e interativa para conscientizar.</div>
+            </div>
+        </div>
+
+        <div id="msg-overlay" class="overlay hidden">
+            <h1 id="msg-title">Título</h1>
+            <p id="msg-desc">Descrição</p>
+            <button id="msg-btn">PRÓXIMO</button>
+        </div>
+
+        <div id="conclusion-overlay" class="overlay hidden">
+            <h1 style="color: #ffd700;">Parabéns! Você chegou ao final!</h1>
+            <p>Você concluiu todas as fases e mostrou que sabe reconhecer sinais de violência silenciosa contra a
+                mulher.</p>
+            <p id="perception-result" style="color: #ffdfff; font-weight: 900;"></p>
+            <p id="perception-message"></p>
+            <p style="color: #a8ffb2; font-weight: 800;">Conhecimento também é uma forma de proteção. Continue
+                espalhando respeito!</p>
+            <button onclick="returnToStartScreen()">Retornar ao Menu</button>
+        </div>
+    </div>
+<script src="script.js"></script>
+</body>
+</html>
